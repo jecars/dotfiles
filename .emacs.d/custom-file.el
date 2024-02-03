@@ -6,7 +6,8 @@
  '(custom-safe-themes
    '("bffa9739ce0752a37d9b1eee78fc00ba159748f50dc328af4be661484848e476" "7fd8b914e340283c189980cd1883dbdef67080ad1a3a9cc3df864ca53bdc89cf" default))
  '(ispell-dictionary nil)
- '(package-selected-packages '(magit use-package company cmake-mode spacemacs-theme)))
+ '(package-selected-packages
+   '(tree-sitter-langs tree-sitter magit use-package company cmake-mode spacemacs-theme)))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

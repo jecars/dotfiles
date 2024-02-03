@@ -1,64 +1,60 @@
-
 ;; ---------- Setup Archives ----------
-
-
 (setq package-archive-priorities '(("gnu" . 10)
                                    ("melpa" . 5))
       package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                          ("melpa" . "https://stable.melpa.org/packages/")
                          ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 
+;; ---------- Setup other files ----------
 
-;; ---------- Configure Defaults ----------
+(setq custom-file (concat user-emacs-directory "custom-file.el"))
+(load-file custom-file)
+(load-file (concat user-emacs-directory "editing.el"))
 
 
-;; set initial size
-(when window-system
-  (set-frame-size (selected-frame) 125 45))
-
-(setq confirm-kill-processes nil)
+;; ---------- Configure Packages ---------- 
 
 ;; General stuff and defaults
-;; tab size
-(setq-default tab-width 4)
+(use-package emacs
+  :init
 
-;; highlight current line
-(global-hl-line-mode 1)
+  ;; tab size
+  (setq-default tab-width 4)
 
-;; line numbering
-(global-display-line-numbers-mode)
-(setq display-line-numbers-type 'relative)
+  ;; highlight current line
+  (global-hl-line-mode 1)
 
-;; no bell
-(setq ring-bell-function 'ignore)
+  ;; line numbering
+  (global-display-line-numbers-mode)
+  (setq display-line-numbers-type 'relative)
+  
+  ;; no bell
+  (setq ring-bell-function 'ignore)
 
-;; y/n instead of yes/no
-(setq use-short-answers t)
+  ;; y/n instead of yes/no
+  (setq use-short-answers t)
 
-;; no scratch message
-(setq initial-scratch-message nil)  
+  ;; no scratch message
+  (setq initial-scratch-message nil)  
 
-(keymap-global-set "M-n" 'scroll-up-line)
-(keymap-global-set "M-p" 'scroll-down-line)
+  (keymap-global-set "M-n" 'scroll-up-line)
+  (keymap-global-set "M-p" 'scroll-down-line)
+  
+  (setq-default
+   ;; paste at cursor not mouse position
+   mouse-yank-at-point t
 
-(setq-default
- ;; paste at cursor not mouse position
- mouse-yank-at-point t
+   ;; saves copies to kill ring 
+   save-interprogram-paste-before-kill t 
 
- ;; saves copies to kill ring 
- save-interprogram-paste-before-kill t 
-
- ;; frame title
- frame-title-format (format "emacs btw")
+    ;; frame title
+   frame-title-format (format "emacs btw")
  
- ;; Put backup files in  ~/.emacs.d/backups
- backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
+   ;; Put backup files in  ~/.emacs.d/backups
+   backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
 
- ;; Do not autosave.
- auto-save-default nil)
-
-
-;; ---------- Configure General Packages ---------- 
+   ;; Do not autosave.
+   auto-save-default nil))
 
 
 ;; Git client
@@ -101,11 +97,12 @@
 ;; Auto COMPlete ANYwhere
 (use-package company
   :ensure t
+  ;; :bind (:map
+  ;; 	company-active-map
+  ;; 	("C-n" . 'company-select-next))
   :config
-  (setq company-minimum-prefix-length 1)
   (setq company-idle-delay 0.0)
-  (global-company-mode t)
-  (keymap-global-set "C-c SPC" 'company-complete))
+  (global-company-mode t))
 
 
 (use-package ido-completing-read+
@@ -123,13 +120,34 @@
   (setq ido-use-virtual-buffers t))
 
 
-;; ---------- Load Files ----------
+(use-package go-mode
+  :ensure t
+  :hook (go-mode . my-go-mode-hook)
+  :init
+  (defun my-go-mode-hook ()
+    (add-hook 'before-save-hook 'gofmt-before-save)
+    (if (not (string-match "go" compile-command))   ; set compile command default
+      (set (make-local-variable 'compile-command)
+           "go run"))
+	(code-editing-keybinds)))
 
 
-(setq custom-file (concat user-emacs-directory "custom-file.el"))
+(use-package python-mode
+  :ensure t
+  :hook (python-mode . my-python-mode-hook)
+  :init
+  (defun my-python-mode-hook ()
+	(code-editing-keybinds)
+	(if (not (string-match "python3" compile-command))   ; set compile command default
+      (set (make-local-variable 'compile-command)
+           "python3"))))
 
-(load-file custom-file)
-(load-file (concat user-emacs-directory "init-programming.el"))
+
+(use-package eglot
+  :ensure t
+  :hook
+  (python-mode . eglot-ensure)
+  (go-mode . eglot-ensure))
 
 
 ;; ---------- Look and feel ----------
