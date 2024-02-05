@@ -44,3 +44,7 @@
 			     (float-time
 			      (time-subtract after-init-time before-init-time)))
 		     gcs-done)))
+
+
+;; -------------------- Package Stuff --------------------
+;; (setq package-enable-at-startup nil)

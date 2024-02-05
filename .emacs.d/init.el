@@ -1,5 +1,5 @@
 
-;; ---------- Setup Archives ----------
+;; -------------------- Setup Archives --------------------
 
 
 (setq package-archive-priorities '(("gnu" . 10)
@@ -9,7 +9,24 @@
                          ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 
 
-;; ---------- Configure Defaults ----------
+
+;; (defvar bootstrap-version)
+;; (let ((bootstrap-file
+;;        (expand-file-name
+;;         "straight/repos/straight.el/bootstrap.el"
+;;         (or (bound-and-true-p straight-base-dir)
+;;             user-emacs-directory)))
+;;       (bootstrap-version 7))
+;;   (unless (file-exists-p bootstrap-file)
+;;     (with-current-buffer
+;;         (url-retrieve-synchronously
+;;          "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+;;          'silent 'inhibit-cookies)
+;;       (goto-char (point-max))
+;;       (eval-print-last-sexp)))
+;;   (load bootstrap-file nil 'nomessage))
+
+;; -------------------- Configure Defaults --------------------
 
 
 ;; set initial size
@@ -57,8 +74,14 @@
  ;; Do not autosave.
  auto-save-default nil)
 
+;; Set regex syntax for regex builder tool
+;; (setq reb-re-syntax 'string)
 
-;; ---------- Configure General Packages ---------- 
+;; Move to trash instead of delete
+(setq-default delete-by-moving-to-trash t)
+
+
+;; -------------------- Configure General Packages ----------------------------- 
 
 
 ;; Git client
@@ -123,16 +146,73 @@
   (setq ido-use-virtual-buffers t))
 
 
-;; ---------- Load Files ----------
+;; optional install:
+;; apt install fd-find poppler-utils ffmpegthumbnailer mediainfo imagemagick tar unzip
+(use-package dirvish
+ ;; :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :config
+  (setq dirvish-hide-details nil)
+  (setq dirvish-attributes
+      '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size)))
+
+(use-package dirvish
+  :init
+  (dirvish-override-dired-mode)
+  :custom
+  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
+   '(("h" "~/"                          "Home")
+     ("d" "~/Downloads/"                "Downloads")
+     ("m" "/mnt/"                       "Drives")
+     ("t" "~/.local/share/Trash/files/" "TrashCan")))
+  :config
+  ;; (dirvish-peek-mode) ; Preview files in minibuffer
+  ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
+  (setq dirvish-mode-line-format
+        '(:left (sort symlink) :right (omit yank index)))
+  (setq dirvish-attributes
+        '(all-the-icons file-time file-size collapse subtree-state vc-state git-msg))
+  (setq delete-by-moving-to-trash t)
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  :bind ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+  (("C-c f" . dirvish-fd)
+   :map dirvish-mode-map ; Dirvish inherits `dired-mode-map'
+   ("a"   . dirvish-quick-access)
+   ("f"   . dirvish-file-info-menu)
+   ("y"   . dirvish-yank-menu)
+   ("N"   . dirvish-narrow)
+   ("^"   . dirvish-history-last)
+   ("h"   . dirvish-history-jump) ; remapped `describe-mode'
+   ("s"   . dirvish-quicksort)    ; remapped `dired-sort-toggle-or-edit'
+   ("v"   . dirvish-vc-menu)      ; remapped `dired-view-file'
+   ("TAB" . dirvish-subtree-toggle)
+   ("M-f" . dirvish-history-go-forward)
+   ("M-b" . dirvish-history-go-backward)
+   ("M-l" . dirvish-ls-switches-menu)
+   ("M-m" . dirvish-mark-menu)
+   ("M-t" . dirvish-layout-toggle)
+   ("M-s" . dirvish-setup-menu)
+   ("M-e" . dirvish-emerge-menu)
+   ("M-j" . dirvish-fd-jump)))
+
+
+(use-package empv
+  :ensure t
+  :defer t)
+
+;; -------------------- Load Files --------------------
 
 
 (setq custom-file (concat user-emacs-directory "custom-file.el"))
 
 (load-file custom-file)
+(load-file (concat user-emacs-directory "init-window.el"))
 (load-file (concat user-emacs-directory "init-programming.el"))
 
 
-;; ---------- Look and feel ----------
+;; -------------------- Look and feel --------------------
 
 
 (use-package ewal-spacemacs-themes
@@ -141,3 +221,5 @@
   (setq spacemacs-theme-comment-bg nil
         spacemacs-theme-comment-italic nil)
   (load-theme 'spacemacs-dark t))
+
+

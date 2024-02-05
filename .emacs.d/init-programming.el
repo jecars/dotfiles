@@ -15,7 +15,6 @@
 			  ("C-c [" . flymake-goto-prev-error)
 			  ("C-c r" . eglot-rename)
 			  ("C-c a" . eglot-code-actions)
-			  ("C-c p" . completion-at-point)
 			  ("C-c <f5>" . eglot-reconnect))
   :config
   (superword-mode)
@@ -35,9 +34,9 @@
 
 
 ;; Compilation window
-(setq compilation-window-height 8)
-(setq compilation-messages-start nil)
-(setq compilation-message-face nil)
+;; (setq compilation-window-height 8)
+;; (setq compilation-messages-start nil)
+;; (setq compilation-message-face nil)
 
 
 ;; -------------------- Python --------------------
@@ -106,3 +105,43 @@
       (set (make-local-variable 'compile-command)
            "go run"))))
 
+;; -------------------- Rust --------------------
+
+
+(use-package rust-mode
+  :ensure t
+  :hook ((rust-mode . my-rust-mode-hook)
+		 (rust-mode . eglot-ensure))
+  :init
+  (defun my-rust-mode-hook ()
+    (if (not (string-match "rust" compile-command))   ; set compile command default
+      (set (make-local-variable 'compile-command)
+           "cargo run"))))
+
+
+;; -------------------- C --------------------
+
+
+(use-package c-mode
+
+  :hook ((c-mode . my-c-mode-hook)
+		 (c-mode . eglot-ensure))
+  :init
+  (defun my-c-mode-hook ()
+    (if (not (string-match "clang" compile-command))   ; set compile command default
+      (set (make-local-variable 'compile-command)
+           "clang"))))
+
+
+;; -------------------- C++ --------------------
+
+
+(use-package c++-mode
+
+  :hook ((c++-mode . my-c++-mode-hook)
+		 (c++-mode . eglot-ensure))
+  :init
+  (defun my-c++-mode-hook ()
+    (if (not (string-match "clang++" compile-command))   ; set compile command default
+      (set (make-local-variable 'compile-command)
+           "clang++"))))
