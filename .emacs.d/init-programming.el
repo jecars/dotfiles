@@ -3,7 +3,7 @@
 
 
 (use-package eglot
-  :ensure t
+  :straight t
   :defer t
   :bind (:map eglot-mode-map
 			  ("C-c c" .  compile)
@@ -27,23 +27,16 @@
 
 
 (use-package eldoc
-  :ensure t
+  :straight t
   :defer t
   :config
   (setq eldoc-idle-delay 0.0))
-
-
-;; Compilation window
-;; (setq compilation-window-height 8)
-;; (setq compilation-messages-start nil)
-;; (setq compilation-message-face nil)
-
 
 ;; -------------------- Python --------------------
 
 
 (use-package pyvenv
-  :ensure t
+  :straight t
   :after (python-mode)
   :config
   (pyvenv-mode t)
@@ -58,7 +51,7 @@
 
 
 (use-package python-mode
-  :ensure t
+  :straight t
   :hook ((python-mode . my-python-mode-hook)
 		 (python-mode . eglot-ensure))
   :init
@@ -96,7 +89,7 @@
 
 
 (use-package go-mode
-  :ensure t
+  :straight t
   :hook ((go-mode . my-go-mode-hook)
 		 (go-mode . eglot-ensure))
   :init
@@ -109,7 +102,7 @@
 
 
 (use-package rust-mode
-  :ensure t
+  :straight t
   :hook ((rust-mode . my-rust-mode-hook)
 		 (rust-mode . eglot-ensure))
   :init
@@ -123,7 +116,6 @@
 
 
 (use-package c-mode
-
   :hook ((c-mode . my-c-mode-hook)
 		 (c-mode . eglot-ensure))
   :init
@@ -137,7 +129,6 @@
 
 
 (use-package c++-mode
-
   :hook ((c++-mode . my-c++-mode-hook)
 		 (c++-mode . eglot-ensure))
   :init

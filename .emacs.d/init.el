@@ -1,5 +1,5 @@
 
-;; -------------------- Setup Archives --------------------
+;; -------------------- Setup Archives and Package Manager  --------------------
 
 
 (setq package-archive-priorities '(("gnu" . 10)
@@ -9,22 +9,25 @@
                          ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
 
 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
 
-;; (defvar bootstrap-version)
-;; (let ((bootstrap-file
-;;        (expand-file-name
-;;         "straight/repos/straight.el/bootstrap.el"
-;;         (or (bound-and-true-p straight-base-dir)
-;;             user-emacs-directory)))
-;;       (bootstrap-version 7))
-;;   (unless (file-exists-p bootstrap-file)
-;;     (with-current-buffer
-;;         (url-retrieve-synchronously
-;;          "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-;;          'silent 'inhibit-cookies)
-;;       (goto-char (point-max))
-;;       (eval-print-last-sexp)))
-;;   (load bootstrap-file nil 'nomessage))
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+
+;; use-package integration
+(straight-use-package 'use-package)
 
 ;; -------------------- Configure Defaults --------------------
 
@@ -43,8 +46,10 @@
 (global-hl-line-mode 1)
 
 ;; line numbering
-(global-display-line-numbers-mode)
+;; (global-display-line-numbers-mode)
 (setq display-line-numbers-type 'relative)
+
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
 
 ;; no bell
 (setq ring-bell-function 'ignore)
@@ -86,22 +91,22 @@
 
 ;; Git client
 (use-package magit
-  :ensure t
+  :straight t
   :defer t
   :bind ("C-x g" . magit-status))
 
 
 ;; Garbage Collection Magic Hack
 (use-package gcmh
-  :ensure t
+  :straight t
   :defer t
   :config
   (gcmh-mode 1))
 
 
 (use-package smex
-  :ensure t
-  ;; Using counsel-M-x for now. Remove this permanently if counsel-M-x works better.
+  :straight t
+  :defer t
   :config
   (setq smex-save-file (concat user-emacs-directory ".smex-items"))
   (smex-initialize)
@@ -110,6 +115,7 @@
 
 ;; Recent files
 (use-package recentf
+  :straight
   :bind (:map
 	 recentf-mode-map
 	 ("C-x C-a" . 'recentf-open-files))
@@ -123,7 +129,7 @@
 
 ;; Auto COMPlete ANYwhere
 (use-package company
-  :ensure t
+  :straight t
   :config
   (setq company-minimum-prefix-length 1)
   (setq company-idle-delay 0.0)
@@ -132,7 +138,7 @@
 
 
 (use-package ido-completing-read+
-  :ensure t
+  :straight t
   :config
   ;; This enables ido in all contexts where it could be useful, not just
   ;; for selecting buffer and file names
@@ -145,63 +151,6 @@
   (setq ido-save-directory-list-file (concat user-emacs-directory ".ido.last"))
   (setq ido-use-virtual-buffers t))
 
-
-;; optional install:
-;; apt install fd-find poppler-utils ffmpegthumbnailer mediainfo imagemagick tar unzip
-(use-package dirvish
- ;; :ensure t
-  :init
-  (dirvish-override-dired-mode)
-  :config
-  (setq dirvish-hide-details nil)
-  (setq dirvish-attributes
-      '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size)))
-
-(use-package dirvish
-  :init
-  (dirvish-override-dired-mode)
-  :custom
-  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
-   '(("h" "~/"                          "Home")
-     ("d" "~/Downloads/"                "Downloads")
-     ("m" "/mnt/"                       "Drives")
-     ("t" "~/.local/share/Trash/files/" "TrashCan")))
-  :config
-  ;; (dirvish-peek-mode) ; Preview files in minibuffer
-  ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
-  (setq dirvish-mode-line-format
-        '(:left (sort symlink) :right (omit yank index)))
-  (setq dirvish-attributes
-        '(all-the-icons file-time file-size collapse subtree-state vc-state git-msg))
-  (setq delete-by-moving-to-trash t)
-  (setq dired-listing-switches
-        "-l --almost-all --human-readable --group-directories-first --no-group")
-  :bind ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
-  (("C-c f" . dirvish-fd)
-   :map dirvish-mode-map ; Dirvish inherits `dired-mode-map'
-   ("a"   . dirvish-quick-access)
-   ("f"   . dirvish-file-info-menu)
-   ("y"   . dirvish-yank-menu)
-   ("N"   . dirvish-narrow)
-   ("^"   . dirvish-history-last)
-   ("h"   . dirvish-history-jump) ; remapped `describe-mode'
-   ("s"   . dirvish-quicksort)    ; remapped `dired-sort-toggle-or-edit'
-   ("v"   . dirvish-vc-menu)      ; remapped `dired-view-file'
-   ("TAB" . dirvish-subtree-toggle)
-   ("M-f" . dirvish-history-go-forward)
-   ("M-b" . dirvish-history-go-backward)
-   ("M-l" . dirvish-ls-switches-menu)
-   ("M-m" . dirvish-mark-menu)
-   ("M-t" . dirvish-layout-toggle)
-   ("M-s" . dirvish-setup-menu)
-   ("M-e" . dirvish-emerge-menu)
-   ("M-j" . dirvish-fd-jump)))
-
-
-(use-package empv
-  :ensure t
-  :defer t)
-
 ;; -------------------- Load Files --------------------
 
 
@@ -210,13 +159,14 @@
 (load-file custom-file)
 (load-file (concat user-emacs-directory "init-window.el"))
 (load-file (concat user-emacs-directory "init-programming.el"))
+(load-file (concat user-emacs-directory "init-file-manager.el"))
 
 
 ;; -------------------- Look and feel --------------------
 
 
 (use-package ewal-spacemacs-themes
-  :ensure t
+  :straight t
   :config
   (setq spacemacs-theme-comment-bg nil
         spacemacs-theme-comment-italic nil)

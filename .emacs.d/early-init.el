@@ -47,4 +47,6 @@
 
 
 ;; -------------------- Package Stuff --------------------
-;; (setq package-enable-at-startup nil)
+
+;; straight.el integration
+(setq package-enable-at-startup nil)

@@ -49,7 +49,7 @@
 ;; 	 (side . right)))
 
 ;; ;; left, top, right, bottom
-;; (setq window-sides-slots '(0 0 0 1))
+;; (setq window-sides-slots '(1 0 0 1))
 
 ;; (add-to-list 'display-buffer-alist
 ;;           `(,(rx (| "*compilation*" "*grep*" "*shell*" "*eshell*"))
@@ -90,35 +90,19 @@
 	  (display-buffer-in-side-window)
 	  (window-height . 0.25)
 	  (side . bottom)
-	  (slot . 1))))
+	  (slot . 1))
+	 ;; ("\\*dirvish.*\\*"
+	 ;;  (display-buffer-in-side-window)
+	 ;;  (display-buffer-reuse-window)
+	 ;;  (side . left)
+	 ;;  (slot . -1))
+	 ))
   :bind (("C-c n" . next-buffer)
 		 ("C-c p" . previous-buffer)
 		 ("C-c s" . window-toggle-side-windows)))
 
-
 (use-package winner
-  :ensure t
+  :straight t
   :hook (after-init . winner-mode)
   :bind (("C-c P" . winner-undo)
 		 ("C-c N" . winner-redo)))
-
-
-(use-package emacs
-  :config
-  (defun jecs/window-dired-vc-root-left ()
-	(interactive)
-	(let ((dir (if ( eq ( vc-root-dir) nil)
-				   (dired-noselect default-directory)
-				 (dired-noselect (vc-root-dir)))))
-	  (display-buffer-in-side-window
-	  dir `((side . left)
-			(slot . 0)
-			(window-width . 0.2)
-			(window-parameters . ((no-other-window . t)
-								  (no-delete-other-windows . t)
-								  (mode-line-format . (" " %b))))))
-	  (with-current-buffer dir
-		(rename-buffer "*Dired-Side*")))
-
-	)
-  )
