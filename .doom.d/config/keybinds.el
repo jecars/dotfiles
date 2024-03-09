@@ -1,9 +1,15 @@
 
 ;; -------------------- Keybinds --------------------
 
+(map! :desc "Repeat" :g "C-." #'repeat)
 
 (map! :leader :desc "Select Treemacs" :g "TAB" #'treemacs-select-window)
-(map! :leader :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
+
+(after! tree-sitter
+  (map! :leader :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode))
+
+(after! company
+  (map! :leader :desc "Company Complete" :g "SPC" #'company-complete))
 
 (after! god-mode
   (god-mode-all -1)
@@ -16,3 +22,7 @@
 
   (after! ace-window
     (define-key god-local-mode-map (kbd "C-x C-o") #'ace-window)))
+
+(after! tab-bar
+  (map! :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
+  )

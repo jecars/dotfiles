@@ -51,3 +51,9 @@
 
 
 ;; (package! python-black) ;; python formatting
+(package! wgsl-mode)
+(package! good-scroll)
+
+(package! darktooth-theme)
+
+;; (package! smooth-scrolling)

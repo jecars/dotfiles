@@ -9,10 +9,21 @@
   (let ((deactivate-mark nil)
         (replacement (string-join
                       (mapcnar (lambda (item)
-                                (if (string-match-p "^\".*\"$" item)
-                                    (string-trim item "\"" "\"")
-                                  (format "\"%s\"" item)))
-                              (split-string (buffer-substring beg end) "\n"))
+                                 (if (string-match-p "^\".*\"$" item)
+                                     (string-trim item "\"" "\"")
+                                   (format "\"%s\"" item)))
+                               (split-string (buffer-substring beg end) "\n"))
                       "\n")))
     (delete-region beg end)
     (insert replacement)))
+
+(defun jecs/stare ()
+  (interactive)
+  (let ((image-list '("~/Pictures/o_o/Gregory.png"
+                     "~/Pictures/o_o/hamsterStare.png"
+                     "~/Pictures/o_o/monkaStare.png"
+                     "~/Pictures/o_o/Stare.png"
+                     "~/Pictures/o_o/crunchy-cat-luna.png"
+                     "~/Pictures/o_o/mikeStare.png")))
+    (ffap (nth (random (length image-list)) image-list)))
+  (image-transform-fit-to-window))

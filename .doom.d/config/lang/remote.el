@@ -13,9 +13,15 @@
      (make-lsp-client :new-connection (lsp-tramp-connection "typescript-language-server --stdio")
                       :major-modes '(rjsx-mode js2-mode typescript-mode)
                       :remote? t
-                      :server-id 'ts-ls-remote)))
-  )
+                      :server-id 'ts-ls-remote))
 
+    (lsp-register-client ;; c-sharp remote LSP
+     (make-lsp-client :new-connection (lsp-tramp-connection "csharp-ls")
+                      :major-modes '(csharp-mode)
+                      :remote? t
+                      :server-id 'csharp-ls-remote))
+    )
+  )
 
 (after! tramp
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))

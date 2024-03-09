@@ -9,7 +9,6 @@
 (setq realgud:pdb-command-name "python3 -m pdb"
       gud-pdb-command-name "python3 -m pdb")
 
-
 ;; rust
 (after! dap-mode
   (dap-ui-mode)

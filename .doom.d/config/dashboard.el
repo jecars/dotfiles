@@ -1,7 +1,7 @@
 
 ;; -------------------- Customize Doom Dashboard --------------------
 
-(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
+;; Customize banner --------------------
 
 (defvar jecs/banners
   '(
@@ -82,7 +82,43 @@
      "          ██▒▒▓▓██        ░░░░░░░░░░░░░░░░░░░░░░██    ██▓▓▓▓▓▓▓▓██          "
      )
 
-))
+    (
+     "                                           ░░░                                "
+     "                                       ░░░░ ░░░░░                             "
+     "                                      ░░░░░░░░░░░░                            "
+     "                                     ░░░░░▒▒▒░░░░░░░░░                        "
+     "                                    ░░░░▒▒▒▒░░░░░░░  ░                        "
+     "                                   ░░░░░▒▒▒░▒░░▒░░░░                          "
+     "                                   ▒░░░░░▒░▒░░░▒▒░▒░▒░░                       "
+     "                               ░▒▒░░  ░░░░░░░░░▒░▒▒▒░▒░                       "
+     "                               ░░░░   ░  ░░░▒░░░░░░▒░▒▒                       "
+     "                            ▒▓▓▓▓▓▓▒  ░  ░░░░░░░░░░░▒░▒                       "
+     "                          ░▓▓▓▓▓▓▓▓▒▒   ░░░░░  ▒ ░░░▒░▒░                      "
+     "                         ░▓▓▓▓▓▓▓▓▓▒    ░▒░░░░ ▒ ░ ░░░░░                      "
+     "                         ▓▓▓▒▒▓▓▓▓▓░    ▒▓░░▒░░░░░░ ░░░░                      "
+     "                        ▓▓▓▓▒  ░░▒▒  ░░ ▒▒▒▓▓▒░ ░▒     ░                      "
+     "                       ░▓▓▓▒   ░░▒░ ░░░░▒▓▓▓▓▓░▒░                             "
+     "                       ▓▓▓▓   ░ ░░  ▒░▒░▓▓▓▓▓▓▓▒░░                            "
+     "                      ▒▓▓▓▒     ░  ░░▒▒░▓▓▓▓▓▓▓▓░                             "
+     "                     ░▓▓▓▓      ░  ░░ ▒▒▓▓▓▓▓▓▓▓▒                             "
+     "                     ▓▓▓▓▒     ░░  ░  ▒▒▓▓▓▒░▒▓▓░                             "
+     "                    ▒▓▓▓▓     ░░   ░  ▒▒▓▓▓▓▒▓▓▒   ░                          "
+     "                    ▓▓▓▓▒    ░        ▒▒▒▓▓▓▓▓▒    ▒                          "
+     "                   ▒▓▓▓▓░    ░       ░▒▒▒▒▒▓▒  ░░░ ░                          "
+     "                   ▓▓▓▓▒    ░        ▒▒▒▒▒░   ░▒░░  ░                         "
+     "                  ▒▓▓▓▓░   ░░       ▒▒▒▒▒▒░   ░▒░ ░                           "
+     "                  ▓▓▓▓▓ ░ ░░░▒▓    ▒▓▓▒▒▒▒░   ░▒░ ░                           "
+     "                 ▒▓▓▓▓▒▓▓▓▓▓▓▓▓ ░  ░▓▓▒▒▒▒▒░  ░▒░                             "
+     "                 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░   ▓▓▓▓▒▒▒▒▒ ░▒                              "
+     "                ░▓▓▓▓▒▓▓▓▓▓▓▓▓▓ ▒░  ░▓▓▓▓▓▓▓▒░ ░░                             "
+     "                ▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░▓░  ░▓▓▓▓▓▓▒▒ ░▒▓▒                           "
+     "                 ▒▓▓▓▓▓▓▓▓▒▒▒▒▒░░▓▓▒  ░▓▓▓▓▓░▒ ░░▓▓▒                          "
+     "                  ░░░░░░░░░░░▒▒░▒▒▓▓▓░░░▓▓▓▓░▒░ ░▒▓▓                          "
+     "                ░░░░   ░     ░▒▒░▓▓▓▓▓▓░▒▓▓▓░▒▓░ ░▓▓▓                         "
+     "              ░░░           ░░▒▓▓▒▓▓▓▓▓▓░▒▓▓░░▓▓░ ░▓▓░                        "
+     )
+
+    ))
 
 (defun jecs/dashboard-ascii-banner ()
   (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
@@ -97,6 +133,32 @@
      'face 'doom-dashboard-banner)))
 
 (setq +doom-dashboard-ascii-banner-fn #'jecs/dashboard-ascii-banner)
+
+;; Customize dashboard widgets --------------------
+
+;; these functions taken straight from doom with slight modification.
+(defun doom-dashboard-widget-loaded ()
+  (when doom-init-time
+    (insert
+     ""
+     (propertize
+      (+doom-dashboard--center
+       +doom-dashboard--width
+       (doom-display-benchmark-h 'return))
+      'face 'doom-dashboard-loaded)
+     "\n")))
+
+(defun doom-display-benchmark-h (&optional return-p)
+  "Display a benchmark including number of packages and modules loaded.
+
+If RETURN-P, return the message as a string instead of displaying it."
+  (funcall (if return-p #'format #'message)
+           "Loaded %d packages in %.03fs"
+           (- (length load-path) (length (get 'load-path 'initial-value)))
+           doom-init-time))
+
+
+;; Remove footer from dashboard
 (setq +doom-dashboard-functions
       '(
         doom-dashboard-widget-banner
@@ -104,3 +166,9 @@
         doom-dashboard-widget-loaded
         ;; doom-dashboard-widget-footer
         ))
+
+;; remove some sections from the dashboard
+(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
+
+;; disable hl line on dashboard
+(add-hook! '+doom-dashboard-functions (setq hl-line-mode nil))
