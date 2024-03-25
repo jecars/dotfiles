@@ -50,10 +50,9 @@
 ;; (unpin! t)
 
 
-;; (package! python-black) ;; python formatting
-(package! wgsl-mode)
-(package! good-scroll)
+;; (package! python-black) ;; python formatting. not using
 
-(package! darktooth-theme)
-
-;; (package! smooth-scrolling)
+(package! wgsl-mode) ;; web gpu graphics shading language
+(package! good-scroll) ;; better scrolling
+(package! darktooth-theme) ;; theme
+(package! gptel) ;; ai assistant

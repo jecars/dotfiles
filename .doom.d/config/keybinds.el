@@ -3,13 +3,18 @@
 
 (map! :desc "Repeat" :g "C-." #'repeat)
 
+;; default is +vertico/switch-workspace-buffer which can be accessed from leader-w-b which makes more sense.
+(map! :g "C-x b" #'consult-buffer)
+
 (map! :leader :desc "Select Treemacs" :g "TAB" #'treemacs-select-window)
 
-(after! tree-sitter
-  (map! :leader :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode))
+(map!
+ :after tree-sitter
+ :leader
+ :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
 
-(after! company
-  (map! :leader :desc "Company Complete" :g "SPC" #'company-complete))
+;; bound to C-; by doom emacs
+(map! :after corfu :leader :desc "Corfu Complete" :g "SPC" #'completion-at-point)
 
 (after! god-mode
   (god-mode-all -1)
@@ -23,6 +28,9 @@
   (after! ace-window
     (define-key god-local-mode-map (kbd "C-x C-o") #'ace-window)))
 
-(after! tab-bar
-  (map! :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
-  )
+(map! :after tab-bar :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
+
+(map! :leader
+      (:prefix-map ("j" . "jecs")
+       :desc "Stare" "s" #'jecs/stare
+       :desc "Open Phone" "p" #'scrcpy-open))

@@ -16,7 +16,4 @@
       (window-height . 0.25)
       (side . bottom)
       (slot . -1)
-      (window-parameters . ((no-delete-other-windows . t))))
-     ))
-)
-
+      (window-parameters . ((no-delete-other-windows . t)))))))
