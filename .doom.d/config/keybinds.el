@@ -13,8 +13,8 @@
  :leader
  :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
 
-;; bound to C-; by doom emacs
-(map! :after corfu :leader :desc "Corfu Complete" :g "SPC" #'completion-at-point)
+;; bound to C-M-i by emacs
+;; (map! :after corfu :leader :desc "Corfu Complete" :g "SPC" #'completion-at-point)
 
 (after! god-mode
   (god-mode-all -1)

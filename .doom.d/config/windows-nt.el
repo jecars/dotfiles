@@ -1,7 +1,6 @@
 
 ;; -------------------- Windows Configs --------------------
 
-
 ;; use vs code font
 (set-frame-font "Cascadia Code" nil t)
 

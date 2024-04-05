@@ -25,11 +25,11 @@
 
 ;;; Code:
 (defcustom scrcpy-connections-alist
-;; adb connect DEVICE_IP:5555 ;;
+;; adb connect DEVICE_IP:5555 ;; last time it was 192.168.2.15
   '(
-    ("phone1" . "scrcpy --video-codec=h265 --audio-buffer=200 --max-size=1920 --max-fps=60 --keyboard=uhid --audio-codec=aac &"))
+    ("phone1" . "scrcpy --video-codec=h265 --audio-buffer=200 --max-size=1920 --max-fps=60 --keyboard=uhid --audio-codec=aac &")
 
-    
+    )
   "An alist to map connection name to scrcpy shell command."
   :type 'alist
   :group 'scrcpy)
@@ -40,8 +40,8 @@
   (if (length= scrcpy-connections-alist 1)
       (let ((cmd (cdr (nth 0 scrcpy-connections-alist))))
            (shell-command cmd))
-    (shell-command "ls")))
-  
+    (shell-command "ls"))
+  )
 
 (provide 'scrcpy)
 ;;; scrcpy.el ends here

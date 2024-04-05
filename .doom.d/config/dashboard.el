@@ -42,8 +42,8 @@
      "     ░▒▓▓▓▓▒▒▒▓▓░░░░░████▓▓▓▓▓▓▓▓▓▒▓▓  ▓▓▒▒▒▓█████████▓▓▒░ ░▒▒▒████▒▒▒▒▓████▓▒"
      "     ▒▓▓▓▓▓▒▓▒▓▓▒░░░░▒███▓▓▓▓▓▓▓▓▓▓▒▓░ ░▓▓▓▓▓▒▒▒▒▓▒▒▒▒▒░░ ░░▒▒▒████▒▒▒▒▓████▓▒"
      "     ▒▓▓▓▓▓▒▒▒▒▒▓█░░░░▒███▓▓▒▓▓▓▓▓▓▒▒▓ ░▒▓▓▓▒░░▓▓▓▓▓▓▒░   ░░▒▒▒████▒▒▒▒█████▓▒"
-     "     ▒▓▓▓▓▓▒▒▒▒▓███░░░░▒███▓▓▓▓▓▓▓▓▓ ▓░░░░▒▓░░░░▓▓▓▓▓░ ░░░░░▒▒▒████▒▒▒▒▓████▓▓"
-     )
+     "     ▒▓▓▓▓▓▒▒▒▒▓███░░░░▒███▓▓▓▓▓▓▓▓▓ ▓░░░░▒▓░░░░▓▓▓▓▓░ ░░░░░▒▒▒████▒▒▒▒▓████▓▓")
+     
 
     (
      "            ████████        ████████  ████                                  "
@@ -79,8 +79,8 @@
      "              ██  ░░██░░██████░░██▓▓▓▓████░░░░  ░░██    ░░░░░░██            "
      "            ██▓▓██░░██░░░░░░░░░░░░██▓▓██░░░░    ░░██  ░░░░████              "
      "          ██▒▒▓▓▓▓██    ░░░░░░░░░░░░████░░░░░░░░░░██  ░░██▓▓▓▓██            "
-     "          ██▒▒▓▓██        ░░░░░░░░░░░░░░░░░░░░░░██    ██▓▓▓▓▓▓▓▓██          "
-     )
+     "          ██▒▒▓▓██        ░░░░░░░░░░░░░░░░░░░░░░██    ██▓▓▓▓▓▓▓▓██          ")
+     
 
     (
      "                                           ░░░                                "
@@ -115,10 +115,10 @@
      "                 ▒▓▓▓▓▓▓▓▓▒▒▒▒▒░░▓▓▒  ░▓▓▓▓▓░▒ ░░▓▓▒                          "
      "                  ░░░░░░░░░░░▒▒░▒▒▓▓▓░░░▓▓▓▓░▒░ ░▒▓▓                          "
      "                ░░░░   ░     ░▒▒░▓▓▓▓▓▓░▒▓▓▓░▒▓░ ░▓▓▓                         "
-     "              ░░░           ░░▒▓▓▒▓▓▓▓▓▓░▒▓▓░░▓▓░ ░▓▓░                        "
-     )
+     "              ░░░           ░░▒▓▓▒▓▓▓▓▓▓░▒▓▓░░▓▓░ ░▓▓░                        ")))
+     
 
-    ))
+    
 
 (defun jecs/dashboard-ascii-banner ()
   (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
@@ -157,18 +157,19 @@ If RETURN-P, return the message as a string instead of displaying it."
            (- (length load-path) (length (get 'load-path 'initial-value)))
            doom-init-time))
 
-
 ;; Remove footer from dashboard
 (setq +doom-dashboard-functions
       '(
         doom-dashboard-widget-banner
         doom-dashboard-widget-shortmenu
-        doom-dashboard-widget-loaded
+        doom-dashboard-widget-loaded))
         ;; doom-dashboard-widget-footer
-        ))
+        
 
 ;; remove some sections from the dashboard
 (setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
 
 ;; disable hl line on dashboard
-(add-hook! '+doom-dashboard-functions (setq hl-line-mode nil))
+(add-hook! '+doom-dashboard-functions
+  (setq hl-line-mode nil)
+  (hide-mode-line-mode 1))
