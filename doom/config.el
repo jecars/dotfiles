@@ -17,13 +17,13 @@
 (load! "config/defaults.el")
 (load! "config/reconfigure.el")
 
-
 (load! "config/lang/lsp.el")
 (load! "config/lang/debugging.el")
 (load! "config/lang/remote.el")
 (load! "config/lang/lang.el")
 
 (load! "config/scrcpy.el")
+(load! "config/org.el")
 
 (load! "config/keybinds.el")
 

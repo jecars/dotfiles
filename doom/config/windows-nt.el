@@ -2,10 +2,9 @@
 ;; -------------------- Windows Configs --------------------
 
 ;; use vs code font
-(set-frame-font "Cascadia Code" nil t)
+(set-frame-font "Cascadia Code 12" nil t)
 
 ;; vterm doesnt work on windows. use eshell instead in packages.el!
-
 (use-package window
   :custom
   (display-buffer-alist

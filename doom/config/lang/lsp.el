@@ -14,6 +14,8 @@
 (after! python
   (setq! lsp-pylsp-plugins-black-enabled t))
 
-
 ;; (after! rustic
+;;   (setq lsp-inlay-hint-enable t))
+
+;; (after! lsp-mode
 ;;   (setq lsp-inlay-hint-enable t))

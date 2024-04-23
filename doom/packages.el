@@ -56,3 +56,4 @@
 (package! good-scroll) ;; better scrolling
 (package! darktooth-theme) ;; theme
 (package! gptel) ;; ai assistant
+(package! lorem-ipsum) ;; fill paragraphs with lorem ipsum

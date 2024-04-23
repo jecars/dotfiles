@@ -13,9 +13,6 @@
  :leader
  :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
 
-;; bound to C-M-i by emacs
-;; (map! :after corfu :leader :desc "Corfu Complete" :g "SPC" #'completion-at-point)
-
 (after! god-mode
   (god-mode-all -1)
   (map! :desc "Toggle God Mode" :g "M-m" #'god-local-mode)
@@ -30,7 +27,14 @@
 
 (map! :after tab-bar :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
 
+;; custom keybinds
 (map! :leader
       (:prefix-map ("j" . "jecs")
        :desc "Stare" "s" #'jecs/stare
+       :desc "Listening" "l" #'jecs/listening
        :desc "Open Phone" "p" #'scrcpy-open))
+
+;; global keybinds
+(map! :leader
+      (:prefix-map ("x" . "global")
+       :desc "Duplicate Line/Region" "d" #'duplicate-dwim))

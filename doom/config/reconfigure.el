@@ -5,7 +5,6 @@
   :init
   (global-tree-sitter-mode t)
   (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode))
-  
 
 (after! treemacs
   (treemacs-follow-mode 1))
@@ -15,7 +14,9 @@
 
 (use-package! gptel
  :config
- (setq! gptel-api-key "YOUR_KEY"))
+ (setq! gptel-api-key "your key"))
 
-(unless (display-graphic-p)
-  (corfu-terminal-mode +1))
+(after! corfu
+  (unless (display-graphic-p)
+   (corfu-terminal-mode +1))
+  (setq corfu-auto-prefix 0))
