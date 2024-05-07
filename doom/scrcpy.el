@@ -25,6 +25,7 @@
 
 ;;; Code:
 (defcustom scrcpy-connections-alist
+;; adb connect DEVICE_IP:5555 ;; last time it was 192.168.2.15
   '(
     ("phone1" . "scrcpy --video-codec=h265 --audio-buffer=200 --max-size=1920 --max-fps=60 --keyboard=uhid --audio-codec=aac &")
 

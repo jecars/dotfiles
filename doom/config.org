@@ -1,0 +1,636 @@
+#+TITLE: Doom Emacs Configuration
+#+PROPERTY: header-args :tangle config.el
+
+* Introduction
+
+My Doom Emacs configuration.
+
+Re-tangle with =C-c C-v t=.
+
+Local refresh with =C-c C-c= on org title.
+
+* Install Extra Packages
+
+These are additional packages that I use.
+
+#+begin_src emacs-lisp :results none :tangle packages.el
+(package! wgsl-mode) ;; web gpu graphics shading language
+(package! good-scroll) ;; better scrolling
+(package! darktooth-theme) ;; theme
+(package! gptel) ;; ai assistant
+(package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
+(package! platformio-mode) ;; embedded programming platform
+(package! benchmark-init) ;; benchmark emacs startup time
+(package! org-msg :pin "4dcd70f14c0046e316dcab54dde0eb7b082ce632")
+#+end_src
+
+* Custom
+** Functions
+These are some custom utility functions that I've created because I find use for them.
+
+*** jecs/toggle-quote-lines
+
+This function wraps a selected region with double quote ="= symbols.
+
+#+begin_src emacs-lisp :results none
+(defun jecs/toggle-quote-lines (beg end)
+  "Toggle wrapping all items in region with double quotes."
+  (interactive (list (mark) (point)))
+  (unless (region-active-p)
+    (user-error "No region to wrap"))
+  (let ((deactivate-mark nil)
+        (replacement (string-join
+                      (mapcar (lambda (item)
+                                (if (string-match-p "^\".*\"$" item)
+                                    (string-trim item "\"" "\"")
+                                  (format "\"%s\"" item)))
+                              (split-string (buffer-substring beg end) "\n"))
+                      "\n")))
+    (delete-region beg end)
+    (insert replacement)))
+#+end_src
+
+*** jecs/stare
+
+This function opens an image and maximizes it in a new buffer.
+
+#+begin_src emacs-lisp :results none
+(defun jecs/stare ()
+  "Opens random image from predefined list."
+  (interactive)
+  (let ((image-list '("~/Pictures/o_o/Gregory.png"
+                      "~/Pictures/o_o/hamsterStare.png"
+                      "~/Pictures/o_o/monkaStare.png"
+                      "~/Pictures/o_o/Stare.png"
+                      "~/Pictures/o_o/crunchy-cat-luna.png"
+                      "~/Pictures/o_o/mikeStare.png")))
+    (ffap (nth (random (length image-list)) image-list)))
+  (image-transform-fit-to-window))
+#+end_src
+
+*** jecs/listening
+
+This function opens a gif, maximizes it, and enables animation, in a new buffer.
+
+#+begin_src emacs-lisp :results none
+(defun jecs/listening (arg)
+  "Opens listening gif. When ARG is non-nil, will open not-listening gif."
+  (interactive "P")
+  (ffap
+   (if arg
+       "~/Pictures/library/not-listening.gif"
+     "~/Pictures/library/listening.gif"))
+  (image-transform-fit-to-window)
+  (image-toggle-animation)
+  (message "%s" arg))
+#+end_src
+
+** Keybinds
+
+These are some misc keybinds that I use.
+
+#+begin_src emacs-lisp :results none
+;; custom keybinds
+(map! :leader
+      (:prefix-map ("j" . "jecs")
+       :desc "Stare" "s" #'jecs/stare
+       :desc "Listening" "l" #'jecs/listening
+       :desc "Open Phone" "p" #'scrcpy-open))
+
+;; global keybinds
+(map! :leader
+      (:prefix-map ("x" . "global")
+       :desc "Duplicate Line/Region" "d" #'duplicate-dwim))
+#+end_src
+
+** General
+
+#+begin_src emacs-lisp :results none
+;; scroll the compilation buffer
+(setq compilation-scroll-output t)
+(setq compilation-scroll-output 'first-error)
+
+(setq user-full-name "Joshua Carrasco"
+      user-mail-address "mail@joshuacarrasco.com")
+
+(setq-default delete-by-moving-to-trash t)
+
+(setq display-line-numbers-type t)
+
+(setq org-directory "~/org/")
+
+;; frame title
+(set-frame-name "emacs btw")
+
+;; dont ask me
+(setq confirm-kill-emacs nil
+      confirm-kill-processes nil)
+
+(setq-default tab-width 4)
+
+;; so cross program copy paste will add to kill ring
+(setq save-interprogram-paste-before-kill t)
+
+;; default font was "Source Code Pro"
+;; font installed from https://github.com/protesilaos/iosevka-comfy
+(set-frame-font "Iosevka Comfy Wide 11" nil t)
+;; (set-frame-font "Source Code Pro 11" nil t)
+
+;; set initial size
+(when window-system
+  (set-frame-size (selected-frame) 136 50))
+
+(map! :desc "Repeat" :g "C-." #'repeat)
+
+;; enable profiler when ran emacs with
+;; emacs --debug-init
+(when init-file-debug
+  (require 'benchmark-init)
+  (add-hook 'doom-first-input-hook #'benchmark-init/deactivate))
+
+(set-frame-parameter nil 'alpha-background 98)
+(add-to-list 'default-frame-alist '(alpha-background . 98))
+#+end_src
+
+** Doom Dashboard
+
+My doom dashboard configuration.
+
+*** Set banner
+
+A pool of ASCII arts that will be randomly chosen from for the dashboard.
+
+#+name: tangled/banners
+#+begin_src elisp :tangle no :results none
+(list (list (f-read-text "./asciis/aqua.txt"))
+      (list (f-read-text "./asciis/maid.txt"))
+      (list (f-read-text "./asciis/rias.txt")))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes :var banners=tangled/banners :results none
+(defvar jecs/banners banners)
+#+end_src
+
+Set doom dashboard by picking a random ascii.
+
+#+begin_src emacs-lisp :results none 
+(setq +doom-dashboard-ascii-banner-fn
+      (lambda ()
+        (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
+               (longest-line (apply #'max (mapcar #'length banner))))
+          (put-text-property
+           (point)
+           (dolist (line banner (point))
+             (insert (+doom-dashboard--center
+                      +doom-dashboard--width
+                      (concat line (make-string (max 0 (- longest-line (length line))) 32)))
+                     "\n"))
+           'face 'doom-dashboard-banner))))
+#+end_src
+
+*** Benchmark
+
+Override default =doom-display-benchmark-h= function with different formatting.
+
+#+begin_src emacs-lisp :results none
+(defun doom-display-benchmark-h (&optional return-p)
+  "Display a benchmark including number of packages and modules loaded.
+
+If RETURN-P, return the message as a string instead of displaying it."
+  (funcall (if return-p #'format #'message)
+           "Loaded %d packages in %.03fs"
+           (- (length load-path) (length (get 'load-path 'initial-value)))
+           doom-init-time))
+#+end_src
+
+*** Dashboard functions
+
+Remove the footer widget from the dashboard.
+
+#+begin_src emacs-lisp :results none
+(setq +doom-dashboard-functions
+      '(doom-dashboard-widget-banner
+        doom-dashboard-widget-shortmenu
+        doom-dashboard-widget-loaded))
+        ;; doom-dashboard-widget-footer
+#+end_src
+
+*** Sections
+
+Remove some sections from the dashboard.
+
+#+begin_src emacs-lisp :results none
+(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
+#+end_src
+
+*** Other
+
+Other small changes.
+
+#+begin_src emacs-lisp :results none
+;; disable hl line on dashboard
+(add-hook! '+doom-dashboard-functions
+  (setq hl-line-mode nil)
+  (hide-mode-line-mode 1))
+
+;; override function to remove newlines at start
+(defun doom-dashboard-widget-loaded ()
+  "Overrides doom dashboard loaded function."
+  (when doom-init-time
+    (insert
+     ""
+     (propertize
+      (+doom-dashboard--center
+       +doom-dashboard--width
+       (doom-display-benchmark-h 'return))
+      'face 'doom-dashboard-loaded)
+     "\n")))
+#+end_src
+
+* Theme
+
+Set theme and customize faces on some themes that I use.
+
+#+begin_src emacs-lisp :results none
+(setq doom-theme
+      ;; 'doom-one
+      ;; 'doom-old-hope
+      ;; 'doom-1337
+      'darktooth)
+#+end_src
+
+** Doom 1337 Customizations
+
+#+begin_src emacs-lisp :results none
+(custom-theme-set-faces! 'doom-1337
+  '(mode-line :background "#476685")
+  '(mode-line-inactive :background "#242628")
+  '(hl-line :background "#252526"))
+#+end_src
+
+** Darktooth Customizations
+
+The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is my favourite theme, but I had to make some customizations for a couple things.
+
+#+begin_src emacs-lisp :results none
+(custom-theme-set-faces! 'darktooth
+  ;; all colours come from darktooh theme unless specified
+
+  ;; so that (text-scale-adjust) scales properly
+  '(line-number :inherit default :foreground "#7C6F64" "#767676")
+  ;; same colour for current line
+  ;; '(line-number-current-line :inherit default :foreground "#7C6F64" "#767676")
+  ;; slightly different colour for current line 
+  '(line-number-current-line :inherit default :foreground "#A89984" "#767676")
+
+  ;; tab bar
+  '(tab-bar-tab :background "#3a3a3a" "#3a3a3a")
+  '(tab-bar-tab-inactive :background "#1c1c1c" "#1c1c1c")
+  '(tab-bar :background "#1c1c1c" "#1c1c1c")
+
+  ;; org mode
+  '(org-block-begin-line :inherit 'org-block :extend t :foreground "#928374" "#8a8a8a")
+  '(org-block-end-line :inherit 'org-block :extend t :foreground "#928374" "#8a8a8a")
+  '(org-block :background "#232323" "#262626" :extend t)
+
+  ;; modeline icons not bold
+  '(success :foreground "#B8BB26" "#73AF00" :bold nil)
+  '(error :foreground "#FB4933" "#d75f5f" :bold nil)
+  '(warning :foreground "#FABD2F" "#ffaf00" :bold nil))
+#+end_src
+
+* Configure Packages
+** Tree Sitter
+
+#+begin_src emacs-lisp :results none
+(use-package! tree-sitter
+  :hook
+  ((prog-mode . global-tree-sitter-mode)
+   (tree-sitter-after-on . tree-sitter-hl-mode)))
+
+(map!
+ :after tree-sitter
+ :leader
+ :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
+#+end_src
+
+** Treemacs
+
+#+begin_src emacs-lisp :results none
+(after! treemacs
+  (treemacs-follow-mode 1))
+
+(map! :leader :desc "Select Treemacs" :g "TAB" #'treemacs-select-window)
+#+end_src
+
+** Company
+
+Company is a completion engine. I've been using corfu instead though.
+
+#+begin_src emacs-lisp :results none
+(after! company
+  (setq company-minimum-prefix-length 1))
+#+end_src
+
+** Gptel
+
+Gptel is a tool to interact with large language models in emacs.
+
+#+begin_src emacs-lisp :results none
+(use-package! gptel
+  :defer t
+  :config
+  (setq! gptel-api-key "YOUR_KEY")
+  (setq! gptel-api-key "YOUR_KEY"))
+#+end_src
+
+** Corfu
+
+Corfu is an in buffer completion engine.
+
+#+begin_src emacs-lisp :results none
+(after! corfu
+  (unless (display-graphic-p)
+    (corfu-terminal-mode +1))
+  (setq corfu-auto-prefix 0))
+#+end_src
+
+** PlatformIO
+
+[[https://github.com/ZachMassia/PlatformIO-Mode][PlatformIO]] is allows you to interact with PlatformIO Core CLI from emacs.
+
+#+begin_src emacs-lisp :results none
+(use-package! platformio-mode
+  :custom
+  (platformio-mode-keymap-prefix (kbd "C-c l p"))
+  :init
+  ;; you may be required to make a .projectile file in project root.
+  (add-hook 'c-mode-hook (lambda ()
+                           (lsp-deferred)
+                           (platformio-conditionally-enable)))
+  (add-hook 'c++-mode-hook (lambda ()
+                             (lsp-deferred)
+                             (platformio-conditionally-enable)))
+
+  :config
+  (which-key-add-keymap-based-replacements platformio-mode-map
+   "C-c l p" '("PlatformIO" . platformio-command-map)
+   "C-c l p b" '("Build Project" . platformio-build)
+   "C-c l p c" '("Clean Compile Objects" . platformio-clean)
+   "C-c l p u" '("Build and Upload" . platformio-upload)
+   "C-c l p p" '("Programmer Upload" . platformio-programmer-upload)
+   "C-c l p s" '("SPIFFS Upload" . platformio-spiffs-upload)
+   "C-c l p d" '("Update" . platformio-update)
+   "C-c l p m" '("Device Monitor" . platformio-device-monitor)
+   "C-c l p l" '("List Boards" . platformio-boards)
+   "C-c l p i" '("Update Workspace" . platformio-init-update-workspace)))
+#+end_src
+
+** Tramp
+
+Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
+
+#+begin_src emacs-lisp :results none
+(after! tramp
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+#+end_src
+
+** scrcpy
+
+scrcpy is a work in progress package that I'm working on to interact with the scrcpy command line utility from emacs.
+
+#+begin_src emacs-lisp :results none
+(load! "scrcpy.el")
+#+end_src
+
+** Org
+
+#+begin_src emacs-lisp :results none
+(add-hook 'org-mode-hook 'yas-minor-mode-on)
+#+end_src
+
+** Org Hugo
+
+#+begin_src emacs-lisp :results none
+(after! ox-hugo
+  :defer t
+  (setq org-hugo-base-dir
+        (concat org-directory "hugo")))
+#+end_src
+
+** Org Roam
+
+#+begin_src emacs-lisp :results none
+(use-package! org-roam
+  :defer t
+  :custom
+  (org-roam-capture-templates
+   '(("d" "default" plain "%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags:\n")
+      :unnarrowed t)
+     ("m" "math" plain "#+STARTUP: latexpreview\n%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Math\n")
+      :unnarrowed t))))
+#+end_src
+
+** Consult
+
+#+begin_src emacs-lisp :results none
+(map! :g "C-x b" #'consult-buffer)
+#+end_src
+
+** God Mode
+
+#+begin_src emacs-lisp :results none
+(after! god-mode
+  (god-mode-all -1)
+  (map! :desc "Toggle God Mode" :g "M-m" #'god-local-mode)
+  (define-key god-local-mode-map (kbd ".") #'repeat)
+  (define-key god-local-mode-map (kbd "C-x C-1") #'delete-other-windows)
+  (define-key god-local-mode-map (kbd "C-x C-2") #'split-window-below)
+  (define-key god-local-mode-map (kbd "C-x C-3") #'split-window-right)
+  (define-key god-local-mode-map (kbd "C-x C-0") #'delete-window)
+
+  (after! ace-window
+    (define-key god-local-mode-map (kbd "C-x C-o") #'ace-window)))
+#+end_src
+
+** Tab Bar
+
+#+begin_src emacs-lisp :results none
+(map! :after tab-bar :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
+#+end_src
+
+** WS Butler
+
+White Space butler
+
+#+begin_src emacs-lisp :tangle yes :results none
+(use-package! ws-butler
+  :config
+  (add-to-list 'ws-butler-global-exempt-modes 'text-mode))
+#+end_src
+
+** mu4e
+
+#+begin_src emacs-lisp :tangle yes
+(set-email-account! "info@joshuacarrasco.com"
+                    '((mu4e-sent-folder       . "/info/Sent Mail")
+                      (mu4e-drafts-folder     . "/info/Drafts")
+                      (mu4e-trash-folder      . "/info/Trash")
+                      (mu4e-refile-folder     . "/info/All Mail")
+                      (smtpmail-smtp-user     . "info@joshuacarrasco.com")
+                      (mu4e-compose-signature . "---\nRegards\nJoshua"))
+                    t)
+
+(set-email-account! "mail@joshuacarrasco.com"
+                    '((mu4e-sent-folder       . "/mail/Sent Mail")
+                      (mu4e-drafts-folder     . "/mail/Drafts")
+                      (mu4e-trash-folder      . "/mail/Trash")
+                      (mu4e-refile-folder     . "/mail/All Mail")
+                      (smtpmail-smtp-user     . "mail@joshuacarrasco.com")
+                      (mu4e-compose-signature . "---\nRegards\nJoshua"))
+                    t)
+
+(setq +mu4e-gmail-accounts '(("mail@joshuacarrasco.com" . "/mail")
+                             ("info@joshuacarrasco.com" . "/info")))
+
+(setq mu4e-update-interval 60)
+(setq smtpmail-smtp-server "smtp.gmail.com")
+#+end_src
+
+* Programming
+
+Configurations for programming languages.
+
+** LSP Mode
+
+General LSP mode configurations.
+
+#+begin_src emacs-lisp :results none
+;; (after! lsp-mode
+;;   (setq lsp-inlay-hint-enable t))
+#+end_src
+
+** DAP Mode
+
+#+begin_src emacs-lisp :results none
+(with-eval-after-load 'dap-mode
+  (setq dap-default-terminal-kind "integrated") ;; Make sure that terminal programs open a term for I/O in an Emacs buffer
+  (dap-auto-configure-mode +1))
+#+end_src
+
+** Python
+
+#+begin_src emacs-lisp :results none
+(after! python
+  (setq! lsp-pylsp-plugins-black-enabled t))
+
+;; debugging
+(after! dap-mode
+  (setq dap-python-debugger 'debugpy))
+
+(setq realgud:pdb-command-name "python3 -m pdb"
+      gud-pdb-command-name "python3 -m pdb")
+#+end_src
+
+** WGSL
+
+#+begin_src emacs-lisp :results none
+(with-eval-after-load 'lsp-mode
+  (add-to-list 'lsp-language-id-configuration
+               '(wgsl-mode . "wgsl"))
+
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection "wgsl_analyzer")
+                    :major-modes '(wgsl-mode)
+                    :server-id 'wgsl-ls)))
+#+end_src
+
+** Rust
+
+#+begin_src emacs-lisp :results none
+;; (after! rustic
+;;   (setq lsp-inlay-hint-enable t))
+
+(after! dap-mode
+  (dap-ui-mode)
+  (dap-ui-controls-mode 1)
+
+  ;; (require 'dap-lldb)
+  (require 'dap-cpptools)
+  ;; (require 'dap-gdb-lldb)
+  ;; installs .extension/vscode
+  ;; (dap-gdb-lldb-setup)
+  (dap-cpptools-setup)
+  (dap-register-debug-template "Rust::CppTools Run Configuration"
+                               (list :type "cppdbg"
+                                     :request "launch"
+                                     :name "Rust::Run"
+                                     :MIMode "gdb"
+                                     :miDebuggerPath "rust-gdb"
+                                     :environment []
+                                     :program "${workspaceFolder}/target/debug/image2ascii"
+                                     :cwd "${workspaceFolder}"
+                                     :console "external"
+                                     :dap-compilation "cargo build"
+                                     :dap-compilation-dir "${workspaceFolder}")))
+#+end_src
+
+** C/C++
+
+#+begin_src emacs-lisp :results none
+(setq c-basic-offset 2)
+
+(after! (tramp lsp-mode)
+  (lsp-register-client ;; c/c++ remote LSP
+   (make-lsp-client :new-connection (lsp-tramp-connection "clangd")
+                    :major-modes '(c-mode c++-mode)
+                    :remote? t
+                    :server-id 'clangd-remote)))
+#+end_src
+
+** C#
+
+#+begin_src emacs-lisp :results none
+(after! (tramp lsp-mode)
+  (lsp-register-client ;; c-sharp remote LSP
+   (make-lsp-client :new-connection (lsp-tramp-connection "csharp-ls")
+                    :major-modes '(csharp-mode)
+                    :remote? t
+                    :server-id 'csharp-ls-remote)))
+#+end_src
+
+** JavaScript
+
+#+begin_src emacs-lisp :results none
+(after! (tramp lsp-mode)
+  (lsp-register-client ;; javascript remote LSP
+   (make-lsp-client :new-connection (lsp-tramp-connection "typescript-language-server --stdio")
+                    :major-modes '(rjsx-mode js2-mode typescript-mode)
+                    :remote? t
+                    :server-id 'ts-ls-remote)))
+#+end_src
+
+* Windows NT
+
+Some configuration for when I have to use windows.
+
+#+begin_src emacs-lisp :results none
+(when (eq system-type 'windows-nt)
+  (progn
+    ;; use vs code font
+    (set-frame-font "Cascadia Code 12" nil t)
+
+    ;; vterm doesnt work on windows. use eshell instead in packages.el!
+    (use-package window
+      :custom
+      (display-buffer-alist
+       ;; bottom slot -1
+       '(("\\*doom:eshell-popup:.*\\*"
+          (display-buffer-in-side-window)
+          (window-height . 0.25)
+          (side . bottom)
+          (slot . -1)
+          (window-parameters . ((no-delete-other-windows . t)))))))))
+#+end_src
