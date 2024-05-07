@@ -1,0 +1,141 @@
+# https://frostyx.cz/posts/synchronize-your-2fa-gmail-with-mbsync#gmail-with-a-plain-password
+
+# other resources:
+# https://pragmaticemacs.wordpress.com/2016/03/22/migrating-from-offlineimap-to-mbsync-for-mu4e/
+# https://macowners.club/posts/email-emacs-mu4e-macos/
+
+# info@joshuacarrasco.com ###################################################################
+IMAPAccount info
+Host imap.gmail.com
+User info@joshuacarrasco.com
+PassCmd "pass email/info@joshuacarrasco.com"
+AuthMechs LOGIN
+SSLType IMAPS
+CertificateFile /etc/ssl/certs/ca-certificates.crt
+
+IMAPStore info-remote
+Account info
+
+MaildirStore info-local
+SubFolders Verbatim
+Path ~/.mail/info
+Inbox ~/.mail/info/INBOX
+
+Channel info-inbox
+Far :info-remote:
+Near :info-local:
+Patterns "INBOX"
+Create Both
+Expunge Both
+SyncState *
+
+Channel info-trash
+Far :info-remote:"[Gmail]/Trash"
+Near :info-local:"/Trash"
+Create Both
+Expunge Both
+SyncState *
+
+Channel info-sent
+Far :info-remote:"[Gmail]/Sent Mail"
+Near :info-local:"/Sent Mail"
+Create Both
+Expunge Both
+SyncState *
+
+Channel info-all
+Far :info-remote:"[Gmail]/All Mail"
+Near :info-local:"/All Mail"
+Create Both
+Expunge Both
+SyncState *
+
+Channel info-starred
+Far :info-remote:"[Gmail]/Starred"
+Near :info-local:"/Starred"
+Create Both
+Expunge Both
+SyncState *
+
+Channel info-drafts
+Far :info-remote:"[Gmail]/Drafts"
+Near :info-local:"/Drafts"
+Create Both
+Expunge Both
+SyncState *
+
+Group info
+Channel info-inbox
+Channel info-sent
+Channel info-trash
+Channel info-all
+Channel info-starred
+Channel info-drafts
+
+# mail@joshuacarrasco.com ###################################################################
+IMAPAccount mail
+Host imap.gmail.com
+User mail@joshuacarrasco.com
+PassCmd "pass email/mail@joshuacarrasco.com"
+AuthMechs LOGIN
+SSLType IMAPS
+CertificateFile /etc/ssl/certs/ca-certificates.crt
+
+IMAPStore mail-remote
+Account mail
+
+MaildirStore mail-local
+SubFolders Verbatim
+Path ~/.mail/mail
+Inbox ~/.mail/mail/INBOX
+
+Channel mail-inbox
+Far :mail-remote:
+Near :mail-local:
+Patterns "INBOX"
+Create Both
+Expunge Both
+SyncState *
+
+Channel mail-trash
+Far :mail-remote:"[Gmail]/Trash"
+Near :mail-local:"/Trash"
+Create Both
+Expunge Both
+SyncState *
+
+Channel mail-sent
+Far :mail-remote:"[Gmail]/Sent Mail"
+Near :mail-local:"/Sent Mail"
+Create Both
+Expunge Both
+SyncState *
+
+Channel mail-all
+Far :mail-remote:"[Gmail]/All Mail"
+Near :mail-local:"/All Mail"
+Create Both
+Expunge Both
+SyncState *
+
+Channel mail-starred
+Far :mail-remote:"[Gmail]/Starred"
+Near :mail-local:"/Starred"
+Create Both
+Expunge Both
+SyncState *
+
+Channel mail-drafts
+Far :mail-remote:"[Gmail]/Drafts"
+Near :mail-local:"/Drafts"
+Create Both
+Expunge Both
+SyncState *
+
+Group mail
+Channel mail-inbox
+Channel mail-sent
+Channel mail-trash
+Channel mail-all
+Channel mail-starred
+Channel mail-drafts
