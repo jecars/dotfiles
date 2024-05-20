@@ -1,40 +1,3 @@
-#+TITLE: Doom Emacs Configuration
-#+PROPERTY: header-args :tangle config.el
-
-* Introduction
-
-My Doom Emacs configuration.
-
-Re-tangle with =C-c C-v t=.
-
-Local refresh with =C-c C-c= on org title.
-
-* Install Extra Packages
-
-These are additional packages that I use.
-
-#+begin_src emacs-lisp :results none :tangle packages.el
-(package! wgsl-mode) ;; web gpu graphics shading language
-(package! good-scroll) ;; better scrolling
-(package! darktooth-theme) ;; theme
-(package! gptel) ;; ai assistant
-(package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
-(package! platformio-mode) ;; embedded programming platform
-(package! benchmark-init) ;; benchmark emacs startup time
-(package! indent-bars
-  :recipe (:host github :repo "jdtsmith/indent-bars"))
-(package! org-roam-ui)
-#+end_src
-
-* Custom
-** Functions
-These are some custom utility functions that I've created because I find use for them.
-
-*** jecs/toggle-quote-lines
-
-This function wraps a selected region with double quote ="= symbols.
-
-#+begin_src emacs-lisp :results none
 (defun jecs/toggle-quote-lines (beg end)
   "Toggle wrapping all items in region with double quotes."
   (interactive (list (mark) (point)))
@@ -50,13 +13,7 @@ This function wraps a selected region with double quote ="= symbols.
                       "\n")))
     (delete-region beg end)
     (insert replacement)))
-#+end_src
 
-*** jecs/stare
-
-This function opens an image and maximizes it in a new buffer.
-
-#+begin_src emacs-lisp :results none
 (defun jecs/stare ()
   "Opens random image from predefined list."
   (interactive)
@@ -68,13 +25,7 @@ This function opens an image and maximizes it in a new buffer.
                       "~/Pictures/o_o/mikeStare.png")))
     (ffap (nth (random (length image-list)) image-list)))
   (image-transform-fit-to-window))
-#+end_src
 
-*** jecs/listening
-
-This function opens a gif, maximizes it, and enables animation, in a new buffer.
-
-#+begin_src emacs-lisp :results none
 (defun jecs/listening (arg)
   "Opens listening gif. When ARG is non-nil, will open not-listening gif."
   (interactive "P")
@@ -85,13 +36,7 @@ This function opens a gif, maximizes it, and enables animation, in a new buffer.
   (image-transform-fit-to-window)
   (image-toggle-animation)
   (message "%s" arg))
-#+end_src
 
-** Keybinds
-
-These are some misc keybinds that I use.
-
-#+begin_src emacs-lisp :results none
 ;; custom keybinds
 (map! :leader
       (:prefix-map ("j" . "jecs")
@@ -103,11 +48,7 @@ These are some misc keybinds that I use.
 (map! :leader
       (:prefix-map ("x" . "global")
        :desc "Duplicate Line/Region" "d" #'duplicate-dwim))
-#+end_src
 
-** General
-
-#+begin_src emacs-lisp :results none
 ;; scroll the compilation buffer
 (setq compilation-scroll-output t)
 (setq compilation-scroll-output 'first-error)
@@ -152,30 +93,108 @@ These are some misc keybinds that I use.
 
 (set-frame-parameter nil 'alpha-background 98)
 (add-to-list 'default-frame-alist '(alpha-background . 98))
-#+end_src
 
-** Doom Dashboard
-
-My doom dashboard configuration.
-
-*** Set banner
-
-A pool of ASCII arts that will be randomly chosen from for the dashboard.
-
-#+name: tangled/banners
-#+begin_src elisp :tangle no :results none
-(list (list (f-read-text "./asciis/aqua.txt"))
-      (list (f-read-text "./asciis/maid.txt"))
-      (list (f-read-text "./asciis/rias.txt")))
-#+end_src
-
-#+begin_src emacs-lisp :tangle yes :var banners=tangled/banners :results none
+(let ((banners '(("           ▓█▓███████████▓███▓▓▓▓▓████▓▓▓▓█▓█▓███▓▓█▓▓█▓▓█▓▒░▒▒▒▓█▓▓▒▓████    
+           ██▒███████████▓██▓▓▓█▒▒▓████▓▓▓▓▓▓████▓▓██▓▓█▒░░░░░░░░░▓█▓▓▓███░   
+          ▒██▓▓██████████▓██▓▓▓▓▓█▓▒▒▓▓▓▒▓▒▓▓█████▓███▓░░▒▓█████▒░▒█▓▓▓███▒   
+          ███▓▓█████████████▓▓█▓▓████▓▓▓▒▒█▓▓█████▓██▒░▒██▓▒▒████▒██▒▓▓███▒   
+         ▒███▓████████████▓█▓▓█▓▓█████████▓█▓▓█████▓█░▓█▒░░░▒███████▒▓▓███▓   
+        ░███▓▓▓███████████▓█▓▓█▓▓█▓▓▓▓▓▓▓████▓▓████▓▓▓█░▒░░░░░▒░████▒▓▓▓███   
+        ▓███▓▒▓▓██████████▓█▒███▓█▓██▓▓▓███████▓███▓██▒░░░▒▓░░▓▓████▓▓▓▓███   
+      ░▓██▓▓▒▓▓▓██████████▓▓▒████▒░░░░░░░▒██████▓▓██▓█▒▒▒▒▒▒▒▓▒█████▓▒▓▓███   
+     ▒██▓▓▓▒▒▒▓▓███████████▒▓██▒░░▒▒▓▓▓▓▒▒▒██████▓▓█▓██▓▒▒▒▒▒▓▓▓█████▒▓▓█▓█░  
+            ▓▓▓▓███████████▒▓▒░░▓███▓▒▒▓███████████▓▓████████████████▒▓▓█▓█░  
+            ▓▒▓▒███████████▓░░▓███▒░░░███████████████████████████████▓▒▓█▓█░  
+            ▒▓▒▓▓█████████▓▓░▓██▓░▒░░▒▒▓▒▓████████████████████████████▒▓▓▓█░  
+           ░▒▓░▓▓████████▓▓▓▓██▓░▒░░▒▒░▒▒▓████████████████████████████▒▓▓▓█░  
+            ██▒▒▓█████████▓▓▓██░░░░▒▒▒▓▒▒████████████▓▓███████████████▓▒▓▓█▒  
+           ░█▓▓▒▒███████████▓▓█░░░▒▒▓▓▒▒▓████████████▓▓▓███████████████▒▓▓█▒  
+           ░█▓▓▒▒████████████▓█▒▒▓▓▒▒▓████████████████▓▓███████████████▒▓▓▓▒  
+           ▒▓▓▓▒▒▓███████████▓████▓▓██████████████████▓▓███████████████▒▓▓▓▒  
+           ▒▒█▓▒▒▓████████████▓███▓████████████████████████████████████▒▓▓▓░  
+           ▒█▓▓▒▓▓▓████████▓███▓██████████████████████████████████████▒▓▓▓█░  
+          ░▓█▓▓▒▓▓▒████████▓███▓█████████████████████████████████████▓▒▓▒▓█░  
+          ▒██▓▓▒▓▓▒▓███████▓▓██▓█████████████████████████████████████▒▓▓▒▓█   
+         ░▓██▓▒▓▓▓▒▓████████▓███▓███████████████████████████▓███████▒▓▓▓▒▒▓   
+         ▒▓█▓▓▒▓▓▓▒▒████████▓▓██▓██████████████████████▓▓▓▓▓▓▓█████▓▒▓▓▓▒▒▓░  
+         ▓██▓▓▒▓▓▓▒▓▓███████▓▓██▓▓█████████████████▓▓▓▓███████████▓▒▓▓▓▓▒▒▓▒░ 
+        ▒▓██▓▒▓▓▓▒▓▓▒█▓██████▓▓██▓███████████▓█▓██▓███████████████▒▓▓▓▒▒▒▒▒█░ 
+        ▓▓██▓▒▓▓▓▒▓▓▒▓▓▓█████▓▓██▓███████████▓▓█▓▓███████████████▓▒▒▒▒▒▒▒░▓█▓ 
+        ▓██▓▓▒▓▓▓▒▓▓▓▒█▓█████▓▓▓██▓██████████▓██████████████████▓█▓▒▒▒▒▒░▒▓█▓▒
+       ▒▓██▓▒▒▓▓▓▒▓▓▓▒▓▓▓███▓▓▓▓▓▓▓████████████████████████████▓██▓▒▒▒▒▒▒▓▓██▓
+       ▒▓██▓▒▓▓▓▓▒▓▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓▓▓██████████████████████████▒███▓▒▒▒▒▒▓▓▓██▓
+      ░▓███▓▒▓▓▓▓▒▒▒▓██▓▓▓▓▓▓▓▓▓▓▓▓▒▓████████████████████████▒▒███▓▒▒▒▒▒▓▒███▓
+      ▒▓▓▓▓▓▒▓▒▓▓░░████▓▓▓▓▓▓▓▓▓▓▓▓▓░▒▓████████████████████▓░▒▒████▒▒▒▒▒█▒███▓
+      ▒▓▓▓▓▓▒▒▓▒░░░░████▓▓▓▓▓▓▓▓▓▓▒▓░░░▒▓█████████████████▒░▒▒▒████░▒▒▒▒█▓██▓▒
+") ("            ████████        ████████  ████                                  
+            ██▓▓▒▒▓▓████  ██        ██    ██              ██████████        
+            ██▒▒████▓▓▓▓██    ░░    ░░      ██  ██████████▒▒▒▒▓▓▒▒██        
+            ██▓▓██░░████  ░░░░░░░░░░░░░░      ██▓▓▓▓▒▒▒▒▒▒▒▒████▒▒██        
+              ████░░██  ░░████████████░░░░░░░░  ▓▓▓▓▓▓▓▓████░░██▓▓██        
+                ████  ░░▓▓▓▓▓▓▓▓████▓▓▓▓██▓▓░░░░▒▒██▓▓██▒▒▒▒░░██▓▓▓▓        
+                  ██░░▓▓▒▒▓▓▒▒▒▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓░░░░░░██░░░░  ██▓▓▓▓          
+                ██  ██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓████░░░░██░░░░██▓▓██          
+                ██░░██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓██░░██░░██▓▓██            
+                  ██▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓██░░██▓▓██              
+                ██▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▓▓██░░██████              
+                ██▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▓██▓▓▓▓██              
+                ██▒▒▒▒▒▒▓▓██▒▒▒▒▒▒▒▒▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓██              
+                ██▒▒▒▒▒▒▓▓██▒▒▒▒▒▒▓▓▓▓▒▒▒▒▒▒▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓██              
+                ██▒▒▒▒▓▓████▒▒▒▒▒▒▓▓██▒▒▒▒▓▓▓▓▒▒▒▒▒▒▓▓▓▓▓▓▓▓██              
+                  ██████░░░░██▒▒▒▒▓▓██▒▒▒▒▓▓██▒▒▒▒▒▒▓▓▓▓▓▓▓▓██              
+                ██▓▓██▓▓▓▓▓▓░░██████░░██████▓▓▒▒▒▒▓▓▓▓▓▓▓▓▓▓██              
+                ██▓▓██  ▒▒▒▒░░░░░░░░▓▓▓▓▓▓▒▒██▒▒▒▒▓▓▓▓▓▓▓▓▓▓██              
+                ██▓▓▓▓░░░░░░░░░░░░░░  ▒▒▒▒░░▓▓▒▒▒▒▓▓▓▓▓▓▓▓██                
+                ██▒▒██░░          ░░░░░░░░██▒▒▒▒▓▓▓▓▓▓▓▓▓▓██                
+                ██▒▒▓▓██    ▓▓░░        ░░██▒▒▒▒▓▓▓▓▓▓▓▓▓▓██                
+                  ██▒▒██                ██▒▒▒▒▓▓▓▓▓▓▓▓▓▓██                  
+                  ██▒▒██░░    ▒▒▒▒      ░░████▓▓▓▓▓▓▓▓██                    
+                    ██▓▓██    ░░░░    ░░██░░██▒▒▓▓▓▓██                      
+                    ██▒▒▓▓▓▓▓▓      ░░▓▓▒▒▓▓▒▒▒▒████                        
+                  ██  ██▓▓██░░████████░░░░██████                            
+                ██  ░░░░████  ██░░██    ░░░░██                              
+              ██    ░░▓▓░░░░████░░░░██    ██░░▓▓██    ██████                
+              ██  ▒▒░░▓▓░░▓▓▓▓▓▓██▓▓██▓▓▓▓░░░░░░░░▓▓██░░░░░░██              
+            ██  ░░░░▓▓░░▓▓▓▓▓▓██▓▓██▓▓▓▓██░░░░░░░░░░██  ░░░░██              
+              ██  ░░██░░██████░░██▓▓▓▓████░░░░  ░░██    ░░░░░░██            
+            ██▓▓██░░██░░░░░░░░░░░░██▓▓██░░░░    ░░██  ░░░░████              
+") ("                                           ░░░                                
+                                       ░░░░ ░░░░░                             
+                                      ░░░░░░░░░░░░                            
+                                     ░░░░░▒▒▒░░░░░░░░░                        
+                                    ░░░░▒▒▒▒░░░░░░░  ░                        
+                                   ░░░░░▒▒▒░▒░░▒░░░░                          
+                                   ▒░░░░░▒░▒░░░▒▒░▒░▒░░                       
+                               ░▒▒░░  ░░░░░░░░░▒░▒▒▒░▒░                       
+                               ░░░░   ░  ░░░▒░░░░░░▒░▒▒                       
+                            ▒▓▓▓▓▓▓▒  ░  ░░░░░░░░░░░▒░▒                       
+                          ░▓▓▓▓▓▓▓▓▒▒   ░░░░░  ▒ ░░░▒░▒░                      
+                         ░▓▓▓▓▓▓▓▓▓▒    ░▒░░░░ ▒ ░ ░░░░░                      
+                         ▓▓▓▒▒▓▓▓▓▓░    ▒▓░░▒░░░░░░ ░░░░                      
+                        ▓▓▓▓▒  ░░▒▒  ░░ ▒▒▒▓▓▒░ ░▒     ░                      
+                       ░▓▓▓▒   ░░▒░ ░░░░▒▓▓▓▓▓░▒░                             
+                       ▓▓▓▓   ░ ░░  ▒░▒░▓▓▓▓▓▓▓▒░░                            
+                      ▒▓▓▓▒     ░  ░░▒▒░▓▓▓▓▓▓▓▓░                             
+                     ░▓▓▓▓      ░  ░░ ▒▒▓▓▓▓▓▓▓▓▒                             
+                     ▓▓▓▓▒     ░░  ░  ▒▒▓▓▓▒░▒▓▓░                             
+                    ▒▓▓▓▓     ░░   ░  ▒▒▓▓▓▓▒▓▓▒   ░                          
+                    ▓▓▓▓▒    ░        ▒▒▒▓▓▓▓▓▒    ▒                          
+                   ▒▓▓▓▓░    ░       ░▒▒▒▒▒▓▒  ░░░ ░                          
+                   ▓▓▓▓▒    ░        ▒▒▒▒▒░   ░▒░░  ░                         
+                  ▒▓▓▓▓░   ░░       ▒▒▒▒▒▒░   ░▒░ ░                           
+                  ▓▓▓▓▓ ░ ░░░▒▓    ▒▓▓▒▒▒▒░   ░▒░ ░                           
+                 ▒▓▓▓▓▒▓▓▓▓▓▓▓▓ ░  ░▓▓▒▒▒▒▒░  ░▒░                             
+                 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░   ▓▓▓▓▒▒▒▒▒ ░▒                              
+                ░▓▓▓▓▒▓▓▓▓▓▓▓▓▓ ▒░  ░▓▓▓▓▓▓▓▒░ ░░                             
+                ▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ░▓░  ░▓▓▓▓▓▓▒▒ ░▒▓▒                           
+                 ▒▓▓▓▓▓▓▓▓▒▒▒▒▒░░▓▓▒  ░▓▓▓▓▓░▒ ░░▓▓▒                          
+                  ░░░░░░░░░░░▒▒░▒▒▓▓▓░░░▓▓▓▓░▒░ ░▒▓▓                          
+                ░░░░   ░     ░▒▒░▓▓▓▓▓▓░▒▓▓▓░▒▓░ ░▓▓▓                         
+              ░░░           ░░▒▓▓▒▓▓▓▓▓▓░▒▓▓░░▓▓░ ░▓▓░                        
+"))))
 (defvar jecs/banners banners)
-#+end_src
+)
 
-Set doom dashboard by picking a random ascii.
-
-#+begin_src emacs-lisp :results none 
 (setq +doom-dashboard-ascii-banner-fn
       (lambda ()
         (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
@@ -188,13 +207,7 @@ Set doom dashboard by picking a random ascii.
                       (concat line (make-string (max 0 (- longest-line (length line))) 32)))
                      "\n"))
            'face 'doom-dashboard-banner))))
-#+end_src
 
-*** Benchmark
-
-Override default =doom-display-benchmark-h= function with different formatting.
-
-#+begin_src emacs-lisp :results none
 (defun doom-display-benchmark-h (&optional return-p)
   "Display a benchmark including number of packages and modules loaded.
 
@@ -203,33 +216,15 @@ If RETURN-P, return the message as a string instead of displaying it."
            "Loaded %d packages in %.03fs"
            (- (length load-path) (length (get 'load-path 'initial-value)))
            doom-init-time))
-#+end_src
 
-*** Dashboard functions
-
-Remove the footer widget from the dashboard.
-
-#+begin_src emacs-lisp :results none
 (setq +doom-dashboard-functions
       '(doom-dashboard-widget-banner
         doom-dashboard-widget-shortmenu
         doom-dashboard-widget-loaded))
         ;; doom-dashboard-widget-footer
-#+end_src
 
-*** Sections
-
-Remove some sections from the dashboard.
-
-#+begin_src emacs-lisp :results none
 (setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
-#+end_src
 
-*** Other
-
-Other small changes.
-
-#+begin_src emacs-lisp :results none
 ;; disable hl line on dashboard
 (add-hook! '+doom-dashboard-functions
   (setq hl-line-mode nil)
@@ -247,34 +242,18 @@ Other small changes.
        (doom-display-benchmark-h 'return))
       'face 'doom-dashboard-loaded)
      "\n")))
-#+end_src
 
-* Theme
-
-Set theme and customize faces on some themes that I use.
-
-#+begin_src emacs-lisp :results none
 (setq doom-theme
       ;; 'doom-one
       ;; 'doom-old-hope
       ;; 'doom-1337
       'darktooth)
-#+end_src
 
-** Doom 1337 Customizations
-
-#+begin_src emacs-lisp :results none
 (custom-theme-set-faces! 'doom-1337
   '(mode-line :background "#476685")
   '(mode-line-inactive :background "#242628")
   '(hl-line :background "#252526"))
-#+end_src
 
-** Darktooth Customizations
-
-The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is my favourite theme, but I had to make some customizations for a couple things.
-
-#+begin_src emacs-lisp :results none
 (custom-theme-set-faces! 'darktooth
   ;; all colours come from darktooh theme unless specified
 
@@ -299,12 +278,7 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
   '(success :foreground "#B8BB26" "#73AF00" :bold nil)
   '(error :foreground "#FB4933" "#d75f5f" :bold nil)
   '(warning :foreground "#FABD2F" "#ffaf00" :bold nil))
-#+end_src
 
-* Configure Packages
-** Tree Sitter
-
-#+begin_src emacs-lisp :results none
 (use-package! tree-sitter
   :hook
   ((prog-mode . global-tree-sitter-mode)
@@ -314,60 +288,29 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
  :after tree-sitter
  :leader
  :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
-#+end_src
 
-** Treemacs
-
-#+begin_src emacs-lisp :results none
 (after! treemacs
   (treemacs-follow-mode 1))
 
 (map! :leader :desc "Select Treemacs" :g "TAB" #'treemacs-select-window)
-#+end_src
 
-** Company
-
-Company is a completion engine. I've been using corfu instead though.
-
-#+begin_src emacs-lisp :results none
 (after! company
   (setq company-minimum-prefix-length 1))
-#+end_src
 
-** Gptel
-
-Gptel is a tool to interact with large language models in emacs.
-
-I use a local llama3.
-
-#+begin_src emacs-lisp :results none
 (use-package! gptel
   :defer t
   :config
-  (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-model "llama3:latest"
         gptel-backend (gptel-make-ollama "Ollama"
                         :host "localhost:11434"
                         :stream t
                         :models '("llama3:latest"))))
-#+end_src
 
-** Corfu
-
-Corfu is an in buffer completion engine.
-
-#+begin_src emacs-lisp :results none
 (after! corfu
   (unless (display-graphic-p)
     (corfu-terminal-mode +1))
   (setq corfu-auto-prefix 0))
-#+end_src
 
-** PlatformIO
-
-[[https://github.com/ZachMassia/PlatformIO-Mode][PlatformIO]] is allows you to interact with PlatformIO Core CLI from emacs.
-
-#+begin_src emacs-lisp :results none
 (use-package! platformio-mode
   :custom
   (platformio-mode-keymap-prefix (kbd "C-c l p"))
@@ -392,47 +335,23 @@ Corfu is an in buffer completion engine.
    "C-c l p m" '("Device Monitor" . platformio-device-monitor)
    "C-c l p l" '("List Boards" . platformio-boards)
    "C-c l p i" '("Update Workspace" . platformio-init-update-workspace)))
-#+end_src
 
-** TRAMP
-
-Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
-
-#+begin_src emacs-lisp :results none
 ;; (after! tramp
 ;;   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 
 ;; (setq tramp-verbose 10)
 ;; (setq tramp-default-method "plink")
 ;; (setq tramp-remote-path '("/mnt/c/Program Files/PuTTY"))
-#+end_src
 
-** scrcpy
-
-scrcpy is a work in progress package that I'm working on to interact with the scrcpy command line utility from emacs.
-
-#+begin_src emacs-lisp :results none
 (load! "scrcpy.el")
-#+end_src
 
-** Org
-
-#+begin_src emacs-lisp :results none
 (add-hook 'org-mode-hook 'yas-minor-mode-on)
-#+end_src
 
-** Org Hugo
-
-#+begin_src emacs-lisp :results none
 (after! ox-hugo
   :defer t
   (setq org-hugo-base-dir
         (concat org-directory "hugo")))
-#+end_src
 
-** Org Roam
-
-#+begin_src emacs-lisp :results none
 (use-package! org-roam
   :defer t
   :custom
@@ -446,13 +365,7 @@ scrcpy is a work in progress package that I'm working on to interact with the sc
      ("p" "programming" plain "#+STARTUP: latexpreview\n%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Programming\n")
       :unnarrowed t))))
-#+end_src
 
-** Org Roam UI
-
-A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
-
-#+begin_src emacs-lisp :tangle yes
 (use-package! websocket
   :after org-roam)
 
@@ -471,17 +384,9 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
 (map!
  :after org-roam-ui
  :desc "Open Web UI" :leader "n r w" #'org-roam-ui-open)
-#+end_src
 
-** Consult
-
-#+begin_src emacs-lisp :results none
 (map! :g "C-x b" #'consult-buffer)
-#+end_src
 
-** God Mode
-
-#+begin_src emacs-lisp :results none
 (after! god-mode
   (god-mode-all -1)
   (map! :desc "Toggle God Mode" :g "M-m" #'god-local-mode)
@@ -493,27 +398,13 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
 
   (after! ace-window
     (define-key god-local-mode-map (kbd "C-x C-o") #'ace-window)))
-#+end_src
 
-** Tab Bar
-
-#+begin_src emacs-lisp :results none
 (map! :after tab-bar :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
-#+end_src
 
-** WS Butler
-
-White Space butler
-
-#+begin_src emacs-lisp :tangle yes :results none
 (use-package! ws-butler
   :config
   (add-to-list 'ws-butler-global-exempt-modes 'text-mode))
-#+end_src
 
-** mu4e
-
-#+begin_src emacs-lisp :tangle yes
 (use-package! mu4e
   :defer 60
   :config
@@ -539,13 +430,7 @@ White Space butler
   (setq mu4e-update-interval 60)
   (setq smtpmail-smtp-server "smtp.gmail.com")
   (setq mu4e-modeline-show-global nil))
-#+end_src
 
-** Indent Bars
-
-[[https://github.com/jdtsmith/indent-bars][Indent Bars]]
-
-#+begin_src emacs-lisp :tangle yes :results none
 (use-package! indent-bars
   :hook ((prog-mode . indent-bars-mode))
   :custom
@@ -554,28 +439,10 @@ White Space butler
   (indent-bars-width-frac 0.1)
   (indent-bars-pad-frac 0.5)
   (indent-bars-display-on-blank-lines t))
-#+end_src
 
-* Programming
-
-Configurations for programming languages.
-
-** LSP Mode
-
-General LSP mode configurations.
-
-#+begin_src emacs-lisp :results none
 ;; (after! lsp-mode
 ;;   (setq lsp-inlay-hint-enable t))
-#+end_src
 
-** Emacs LSP Booster
-
-[[https://github.com/blahgeek/emacs-lsp-booster][emacs-lsp-booster]] improves the performenace of lsp-mode by wrapping the lsp with an executable that translates json messages to elisp bytecode so Emacs doesn't have to.
-
-If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =doom sync --rebuild=.
-
-#+begin_src emacs-lisp :tangle yes
 (defun lsp-booster--advice-json-parse (old-fn &rest args)
   "Try to parse bytecode instead of json."
   (or
@@ -604,19 +471,11 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
           (cons "emacs-lsp-booster" orig-result))
       orig-result)))
 (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
-#+end_src
 
-** DAP Mode
-
-#+begin_src emacs-lisp :results none
 (with-eval-after-load 'dap-mode
   (setq dap-default-terminal-kind "integrated") ;; Make sure that terminal programs open a term for I/O in an Emacs buffer
   (dap-auto-configure-mode +1))
-#+end_src
 
-** Python
-
-#+begin_src emacs-lisp :results none
 (after! python
   (setq! lsp-pylsp-plugins-black-enabled t))
 
@@ -629,11 +488,7 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
 
 (after! lsp-mode
   (setq lsp-pyright-multi-root nil))
-#+end_src
 
-** WGSL
-
-#+begin_src emacs-lisp :results none
 (with-eval-after-load 'lsp-mode
   (add-to-list 'lsp-language-id-configuration
                '(wgsl-mode . "wgsl"))
@@ -642,11 +497,7 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
    (make-lsp-client :new-connection (lsp-stdio-connection "wgsl_analyzer")
                     :major-modes '(wgsl-mode)
                     :server-id 'wgsl-ls)))
-#+end_src
 
-** Rust
-
-#+begin_src emacs-lisp :results none
 ;; (after! rustic
 ;;   (setq lsp-inlay-hint-enable t))
 
@@ -675,11 +526,7 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
                                      :console "external"
                                      :dap-compilation "cargo build"
                                      :dap-compilation-dir "${workspaceFolder}")))
-#+end_src
 
-** C/C++
-
-#+begin_src emacs-lisp :results none
 (setq c-basic-offset 2)
 
 (after! (tramp lsp-mode)
@@ -688,41 +535,23 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
                     :major-modes '(c-mode c++-mode)
                     :remote? t
                     :server-id 'clangd-remote)))
-#+end_src
 
-** C#
-
-#+begin_src emacs-lisp :results none
 (after! (tramp lsp-mode)
   (lsp-register-client ;; c-sharp remote LSP
    (make-lsp-client :new-connection (lsp-tramp-connection "csharp-ls")
                     :major-modes '(csharp-mode)
                     :remote? t
                     :server-id 'csharp-ls-remote)))
-#+end_src
 
-** JavaScript
-
-#+begin_src emacs-lisp :results none
 (after! (tramp lsp-mode)
   (lsp-register-client ;; javascript remote LSP
    (make-lsp-client :new-connection (lsp-tramp-connection "typescript-language-server --stdio")
                     :major-modes '(rjsx-mode js2-mode typescript-mode)
                     :remote? t
                     :server-id 'ts-ls-remote)))
-#+end_src
 
-** Lisp
 
-#+begin_src emacs-lisp :tangle yes
 
-#+end_src
-
-* Windows NT
-
-Some configuration for when I have to use windows.
-
-#+begin_src emacs-lisp :results none
 (when (eq system-type 'windows-nt)
   (progn
     ;; use vs code font
@@ -739,4 +568,3 @@ Some configuration for when I have to use windows.
           (side . bottom)
           (slot . -1)
           (window-parameters . ((no-delete-other-windows . t)))))))))
-#+end_src
