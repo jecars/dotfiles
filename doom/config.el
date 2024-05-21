@@ -299,7 +299,10 @@ If RETURN-P, return the message as a string instead of displaying it."
 
 (use-package! gptel
   :defer t
+  :bind
+  (("C-c o g" . #'gptel))
   :config
+  (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-model "llama3:latest"
         gptel-backend (gptel-make-ollama "Ollama"
                         :host "localhost:11434"

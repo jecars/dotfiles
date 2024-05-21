@@ -9,6 +9,15 @@ Re-tangle with =C-c C-v t=.
 
 Local refresh with =C-c C-c= on org title.
 
+** Update Repository
+
+You can ignore this I just have it here so I can quickly update my dotfiles repository.
+
+#+begin_src shell :eval no :tangle no
+rm -r ~/Desktop/dotfiles/doom/*
+cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
+#+end_src
+
 * Install Extra Packages
 
 These are additional packages that I use.
@@ -343,6 +352,8 @@ I use a local llama3.
 #+begin_src emacs-lisp :results none
 (use-package! gptel
   :defer t
+  :bind
+  (("C-c o g" . #'gptel))
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-model "llama3:latest"
