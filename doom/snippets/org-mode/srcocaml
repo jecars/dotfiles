@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: srcocaml
+# uuid: srcocaml
+# key: srcocaml
+# condition: t
+# --
+#+begin_src ocaml :tangle no
+$0
+#+end_src

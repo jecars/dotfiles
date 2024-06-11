@@ -5,15 +5,15 @@
 
 My Doom Emacs configuration.
 
-Re-tangle with =C-c C-v t=.
-
-Local refresh with =C-c C-c= on org title.
+Note to self:
+- Re-tangle with =C-c C-v t=.
+- Local refresh with =C-c C-c= on org title.
 
 ** Update Repository
 
 You can ignore this I just have it here so I can quickly update my dotfiles repository.
 
-#+begin_src shell :eval no :tangle no
+#+begin_src shell :eval yes :tangle no
 rm -r ~/Desktop/dotfiles/doom/*
 cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
 #+end_src
@@ -33,6 +33,7 @@ These are additional packages that I use.
 (package! indent-bars
   :recipe (:host github :repo "jdtsmith/indent-bars"))
 (package! org-roam-ui)
+(package! eldoc-box)
 #+end_src
 
 * Custom
@@ -61,9 +62,27 @@ This function wraps a selected region with double quote ="= symbols.
     (insert replacement)))
 #+end_src
 
+*** Toggle Mode
+
+This function toggles the current major mode by switching to fundamental mode then back to
+whatever mode was previously active.
+
+#+begin_src emacs-lisp :tangle yes
+(defun jecs/toggle-major-mode ()
+   (interactive)
+   (let ((old-major-mode major-mode))
+     (fundamental-mode)
+     (funcall old-major-mode)))
+#+end_src
+
+#+RESULTS:
+: jecs/toggle-major-mode
+
 *** jecs/stare
 
-This function opens an image and maximizes it in a new buffer.
+This function opens one of my preselected images and maximizes it in a new buffer.
+
+Don't ask me why I'm weird.
 
 #+begin_src emacs-lisp :results none
 (defun jecs/stare ()
@@ -81,7 +100,9 @@ This function opens an image and maximizes it in a new buffer.
 
 *** jecs/listening
 
-This function opens a gif, maximizes it, and enables animation, in a new buffer.
+This function opens one of my preselected gifs, maximizes it, and enables animation, in a new buffer.
+
+Don't ask me why I'm weird.
 
 #+begin_src emacs-lisp :results none
 (defun jecs/listening (arg)
@@ -109,9 +130,8 @@ These are some misc keybinds that I use.
        :desc "Open Phone" "p" #'scrcpy-open))
 
 ;; global keybinds
-(map! :leader
-      (:prefix-map ("x" . "global")
-       :desc "Duplicate Line/Region" "d" #'duplicate-dwim))
+(map! :g "C-x L" #'count-lines-page)
+(map! :g "C-x l" #'duplicate-dwim)
 #+end_src
 
 ** General
@@ -137,15 +157,18 @@ These are some misc keybinds that I use.
 (setq confirm-kill-emacs nil
       confirm-kill-processes nil)
 
-(setq-default tab-width 4)
+(setq-default tab-width 2)
+(setq tab-width 2)
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 
 ;; default font was "Source Code Pro"
 ;; font installed from https://github.com/protesilaos/iosevka-comfy
-(set-frame-font "Iosevka Comfy Wide 11" nil t)
+(set-frame-font "Iosevka Comfy Wide 11" nil t) ; installed in ~/.local/share/fonts
 ;; (set-frame-font "Source Code Pro 11" nil t)
+;; (set-face-attribute 'default nil
+;;                     :family "Iosevka Comfy Wide" :height 110)
 
 ;; set initial size
 (when window-system
@@ -304,6 +327,12 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
   '(org-block-end-line :inherit 'org-block :extend t :foreground "#928374" "#8a8a8a")
   '(org-block :background "#232323" "#262626" :extend t)
 
+  ;; lsp
+  ;; '(lsp-face-highlight-read :inherit 'highlight :underline nil :bold t)
+
+  ;; diredfl
+  ;; '(diredfl-symlink nil)
+  
   ;; modeline icons not bold
   '(success :foreground "#B8BB26" "#73AF00" :bold nil)
   '(error :foreground "#FB4933" "#d75f5f" :bold nil)
@@ -311,6 +340,15 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
 #+end_src
 
 * Configure Packages
+** Dired
+
+#+begin_src emacs-lisp :tangle yes
+(use-package! diredfl
+  :defer t
+  :config
+  (setq dired-listing-switches "-ahHl -v --group-directories-first -H"))
+#+end_src
+
 ** Tree Sitter
 
 #+begin_src emacs-lisp :results none
@@ -371,7 +409,13 @@ Corfu is an in buffer completion engine.
 (after! corfu
   (unless (display-graphic-p)
     (corfu-terminal-mode +1))
-  (setq corfu-auto-prefix 0))
+  (setq corfu-auto-prefix 2) 
+  (setq corfu-auto-delay 0.1) ;; default 0.5
+  (setq corfu-popupinfo-delay '(0.3 . 0.3)) ;; default 0.5 . 0.1
+  
+  (map! :map corfu-map
+        "TAB" #'corfu-insert
+        "<tab>" #'corfu-insert))
 #+end_src
 
 ** PlatformIO
@@ -409,13 +453,13 @@ Corfu is an in buffer completion engine.
 
 Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
 
-#+begin_src emacs-lisp :results none
-;; (after! tramp
-;;   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+#+begin_src emacs-lisp :results none :tangle no
+(after! tramp
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 
-;; (setq tramp-verbose 10)
-;; (setq tramp-default-method "plink")
-;; (setq tramp-remote-path '("/mnt/c/Program Files/PuTTY"))
+(setq tramp-verbose 10)
+(setq tramp-default-method "plink")
+(setq tramp-remote-path '("/mnt/c/Program Files/PuTTY"))
 #+end_src
 
 ** scrcpy
@@ -468,11 +512,7 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
   :after org-roam)
 
 (use-package! org-roam-ui
-  :after org-roam ;; or :after org
-  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-  ;;         a hookable mode anymore, you're advised to pick something yourself
-  ;;         if you don't care about startup time, use
-  ;;  :hook (after-init . org-roam-ui-mode)
+  :after org-roam
   :config
   (setq org-roam-ui-sync-theme t
         org-roam-ui-follow t
@@ -567,6 +607,29 @@ White Space butler
   (indent-bars-display-on-blank-lines t))
 #+end_src
 
+** Avy
+
+Go to any where on screen within your buffer.
+
+#+begin_src emacs-lisp :tangle yes
+(map! :after avy
+      :desc "Avy Goto Character" :leader "s c" #'avy-goto-char-2)
+#+end_src
+
+** eldoc-box
+
+Childframe package for eldoc.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package! eldoc-box
+  :config
+   (custom-set-faces!
+    '(eldoc-box-border :background "#3f3f3f")))
+
+(map! :after (eldoc eldoc-box)
+      :desc "Eldoc Help at point" :g "C-M-y" #'eldoc-box-help-at-point)
+#+end_src
+
 * Programming
 
 Configurations for programming languages.
@@ -575,9 +638,9 @@ Configurations for programming languages.
 
 General LSP mode configurations.
 
-#+begin_src emacs-lisp :results none
-;; (after! lsp-mode
-;;   (setq lsp-inlay-hint-enable t))
+#+begin_src emacs-lisp :results none :tangle no
+(after! lsp-mode
+  (setq lsp-inlay-hint-enable t))
 #+end_src
 
 ** Emacs LSP Booster
@@ -595,6 +658,7 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
        (when (byte-code-function-p bytecode)
          (funcall bytecode))))
    (apply old-fn args)))
+
 (advice-add (if (progn (require 'json)
                        (fboundp 'json-parse-buffer))
                 'json-parse-buffer
@@ -701,7 +765,7 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
                     :server-id 'clangd-remote)))
 #+end_src
 
-** C#
+** C# / C Sharp
 
 #+begin_src emacs-lisp :results none
 (after! (tramp lsp-mode)
@@ -710,6 +774,10 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
                     :major-modes '(csharp-mode)
                     :remote? t
                     :server-id 'csharp-ls-remote)))
+
+(after! lsp-mode
+  :config
+  (setq lsp-csharp-omnisharp-enable-decompilation-support t))
 #+end_src
 
 ** JavaScript
@@ -723,10 +791,28 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
                     :server-id 'ts-ls-remote)))
 #+end_src
 
-** Lisp
+** Common Lisp
+
+Doom already does all required common lisp configs so nothing here.
+
+** OCaml
+
+Using +lsp instead of merlin, not sure if there is a merlin equivalent for
+lsp-rename-symbol.
+
+Doom already does all my OCaml configs so nothing here.
+
+** F# / F Sharp
 
 #+begin_src emacs-lisp :tangle yes
+(use-package! fsharp-mode
+  :config
+  (setq-default fsharp-indent-offset 2))
 
+(use-package! lsp-mode
+  :defer t
+  :config
+  (setq lsp-fsharp-external-autocomplete t))
 #+end_src
 
 * Windows NT

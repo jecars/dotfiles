@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: corelog
+# key: corelog
+# --
+Core.Instance.Loggers.Log($"$0");

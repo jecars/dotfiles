@@ -8,3 +8,5 @@
 (package! indent-bars
   :recipe (:host github :repo "jdtsmith/indent-bars"))
 (package! org-roam-ui)
+(package! eldoc-box)
+;; (package! modus-themes)

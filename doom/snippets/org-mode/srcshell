@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: shell
-# key: shell
+# name: srcshell
+# key: srcshell
 # --
 #+begin_src shell :eval no
 $0

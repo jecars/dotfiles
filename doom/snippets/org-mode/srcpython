@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: python
-# key: python
+# name: srcpython
+# key: srcpython
 # --
 #+begin_src python :tangle no
 $0
