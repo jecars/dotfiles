@@ -18,24 +18,6 @@ rm -r ~/Desktop/dotfiles/doom/*
 cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
 #+end_src
 
-* Install Extra Packages
-
-These are additional packages that I use.
-
-#+begin_src emacs-lisp :results none :tangle packages.el
-(package! wgsl-mode) ;; web gpu graphics shading language
-(package! good-scroll) ;; better scrolling
-(package! darktooth-theme) ;; theme
-(package! gptel) ;; ai assistant
-(package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
-(package! platformio-mode) ;; embedded programming platform
-(package! benchmark-init) ;; benchmark emacs startup time
-(package! indent-bars
-  :recipe (:host github :repo "jdtsmith/indent-bars"))
-(package! org-roam-ui)
-(package! eldoc-box)
-#+end_src
-
 * Custom
 ** Functions
 These are some custom utility functions that I've created because I find use for them.
@@ -132,6 +114,12 @@ These are some misc keybinds that I use.
 ;; global keybinds
 (map! :g "C-x L" #'count-lines-page)
 (map! :g "C-x l" #'duplicate-dwim)
+
+
+;; (map! :g "C-m" (lambda ()
+;;                  (interactive)
+;;                  (split-line)
+;;                  (next-line)))
 #+end_src
 
 ** General
@@ -163,10 +151,13 @@ These are some misc keybinds that I use.
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 
-;; default font was "Source Code Pro"
-;; font installed from https://github.com/protesilaos/iosevka-comfy
-(set-frame-font "Iosevka Comfy Wide 11" nil t) ; installed in ~/.local/share/fonts
 ;; (set-frame-font "Source Code Pro 11" nil t)
+
+;; font installed from https://typeof.net/Iosevka/
+(set-face-attribute 'default nil
+                    :family "Iosevka Term Extended" :height 110)
+
+;; font installed from https://github.com/protesilaos/iosevka-comfy
 ;; (set-face-attribute 'default nil
 ;;                     :family "Iosevka Comfy Wide" :height 110)
 
@@ -175,12 +166,6 @@ These are some misc keybinds that I use.
   (set-frame-size (selected-frame) 136 50))
 
 (map! :desc "Repeat" :g "C-." #'repeat)
-
-;; enable profiler when ran emacs with
-;; emacs --debug-init
-(when init-file-debug
-  (require 'benchmark-init)
-  (add-hook 'doom-first-input-hook #'benchmark-init/deactivate))
 
 (set-frame-parameter nil 'alpha-background 98)
 (add-to-list 'default-frame-alist '(alpha-background . 98))
@@ -281,9 +266,13 @@ Other small changes.
      "\n")))
 #+end_src
 
-* Theme
+* Themes
 
 Set theme and customize faces on some themes that I use.
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! darktooth-theme)
+#+end_src
 
 #+begin_src emacs-lisp :results none
 (setq doom-theme
@@ -323,8 +312,8 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
   '(tab-bar :background "#1c1c1c" "#1c1c1c")
 
   ;; org mode
-  '(org-block-begin-line :inherit 'org-block :extend t :foreground "#928374" "#8a8a8a")
-  '(org-block-end-line :inherit 'org-block :extend t :foreground "#928374" "#8a8a8a")
+  '(org-block-begin-line :inherit org-block :extend t :foreground "#928374" "#8a8a8a")
+  '(org-block-end-line :inherit org-block :extend t :foreground "#928374" "#8a8a8a")
   '(org-block :background "#232323" "#262626" :extend t)
 
   ;; lsp
@@ -336,10 +325,37 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
   ;; modeline icons not bold
   '(success :foreground "#B8BB26" "#73AF00" :bold nil)
   '(error :foreground "#FB4933" "#d75f5f" :bold nil)
-  '(warning :foreground "#FABD2F" "#ffaf00" :bold nil))
+  '(warning :foreground "#FABD2F" "#ffaf00" :bold nil)
+
+  '(vterm-color-red :inherit term-color-red :background "#ff9090")
+  '(vterm-color-blue :inherit term-color-blue :background "#7cc3f3")
+  '(vterm-color-cyan :inherit term-color-cyan :background "#74e2ff")
+  '(vterm-color-black :inherit term-color-black :background "#54595e")
+  '(vterm-color-green :inherit term-color-green :background "#b1ce8b")
+  '(vterm-color-white :inherit term-color-white :background "#e7e7e7")
+  '(vterm-color-yellow :inherit term-color-yellow :background "#f0ce9c")
+  '(vterm-color-magenta :inherit term-color-magenta :background "#d499e5")
+
+  '(mode-line-highlight :foreground "#fffabc" :bold nil))
 #+end_src
 
 * Configure Packages
+** benchmark-init
+
+A benchmark profiler for debugging long Emacs startup times.
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! benchmark-init)
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+;; enable profiler when ran emacs with
+;; emacs --debug-init
+(when init-file-debug
+  (require 'benchmark-init)
+  (add-hook 'doom-first-input-hook #'benchmark-init/deactivate))
+#+end_src
+
 ** Dired
 
 #+begin_src emacs-lisp :tangle yes
@@ -381,11 +397,23 @@ Company is a completion engine. I've been using corfu instead though.
   (setq company-minimum-prefix-length 1))
 #+end_src
 
+** Anzu
+
+#+begin_src emacs-lisp :tangle yes
+(use-package! anzu
+  :config
+  (global-anzu-mode t))
+#+end_src
+
 ** Gptel
 
 Gptel is a tool to interact with large language models in emacs.
 
 I use a local llama3.
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! gptel)
+#+end_src
 
 #+begin_src emacs-lisp :results none
 (use-package! gptel
@@ -421,6 +449,10 @@ Corfu is an in buffer completion engine.
 ** PlatformIO
 
 [[https://github.com/ZachMassia/PlatformIO-Mode][PlatformIO]] is allows you to interact with PlatformIO Core CLI from emacs.
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! platformio-mode)
+#+end_src
 
 #+begin_src emacs-lisp :results none
 (use-package! platformio-mode
@@ -506,6 +538,10 @@ scrcpy is a work in progress package that I'm working on to interact with the sc
 ** Org Roam UI
 
 A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! org-roam-ui)
+#+end_src
 
 #+begin_src emacs-lisp :tangle yes
 (use-package! websocket
@@ -594,9 +630,14 @@ White Space butler
 
 ** Indent Bars
 
-[[https://github.com/jdtsmith/indent-bars][Indent Bars]]
+[[https://github.com/jdtsmith/indent-bars][Indent Bars]]. Not using this one for now.
 
-#+begin_src emacs-lisp :tangle yes :results none
+#+begin_src emacs-lisp :tangle no
+(package! indent-bars
+  :recipe (:host github :repo "jdtsmith/indent-bars"))
+#+end_src
+
+#+begin_src emacs-lisp :tangle no :results none
 (use-package! indent-bars
   :hook ((prog-mode . indent-bars-mode))
   :custom
@@ -619,6 +660,10 @@ Go to any where on screen within your buffer.
 ** eldoc-box
 
 Childframe package for eldoc.
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! eldoc-box)
+#+end_src
 
 #+begin_src emacs-lisp :tangle yes
 (use-package! eldoc-box
@@ -707,6 +752,12 @@ If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =do
 #+end_src
 
 ** WGSL
+
+The shader language for WebGPU
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! wgsl-mode)
+#+end_src
 
 #+begin_src emacs-lisp :results none
 (with-eval-after-load 'lsp-mode
@@ -802,9 +853,25 @@ lsp-rename-symbol.
 
 Doom already does all my OCaml configs so nothing here.
 
+** ReasonML
+
+ReasonML is an /alternative syntax/ to OCaml for the web.
+
+#+begin_src emacs-lisp :tangle no
+(package! reason-mode)
+#+end_src
+
+#+begin_src emacs-lisp :tangle no
+(use-package! reason-mode
+  :defer t
+  :config
+  (set-formatter! 'refmt '("refmt") :modes '(reason-mode))
+  (add-hook 'reason-mode-hook #'merlin-mode))
+#+end_src
+
 ** F# / F Sharp
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! fsharp-mode
   :config
   (setq-default fsharp-indent-offset 2))
@@ -836,4 +903,13 @@ Some configuration for when I have to use windows.
           (side . bottom)
           (slot . -1)
           (window-parameters . ((no-delete-other-windows . t)))))))))
+#+end_src
+
+* Other Packages
+
+Additional packages that don't require any configurations.
+
+#+begin_src emacs-lisp :results none :tangle packages.el
+(package! good-scroll) ;; better scrolling
+(package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src
