@@ -13,7 +13,7 @@ Note to self:
 
 You can ignore this I just have it here so I can quickly update my dotfiles repository.
 
-#+begin_src shell :eval yes :tangle no
+#+begin_src shell :eval yes :tangle no :results none
 rm -r ~/Desktop/dotfiles/doom/*
 cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
 #+end_src
@@ -842,20 +842,10 @@ The shader language for WebGPU
                     :server-id 'ts-ls-remote)))
 #+end_src
 
-** Common Lisp
-
-Doom already does all required common lisp configs so nothing here.
-
-** OCaml
-
-Using +lsp instead of merlin, not sure if there is a merlin equivalent for
-lsp-rename-symbol.
-
-Doom already does all my OCaml configs so nothing here.
-
 ** ReasonML
 
-ReasonML is an /alternative syntax/ to OCaml for the web.
+ReasonML is an /alternative syntax/ to OCaml for the web. 
+Not using this anymore, so leaving it untangled.
 
 #+begin_src emacs-lisp :tangle no
 (package! reason-mode)
@@ -871,6 +861,8 @@ ReasonML is an /alternative syntax/ to OCaml for the web.
 
 ** F# / F Sharp
 
+Not using this anymore, so leaving it untangled.
+
 #+begin_src emacs-lisp :tangle no
 (use-package! fsharp-mode
   :config
@@ -880,6 +872,28 @@ ReasonML is an /alternative syntax/ to OCaml for the web.
   :defer t
   :config
   (setq lsp-fsharp-external-autocomplete t))
+#+end_src
+
+** Julia
+
+Not using this for now, so leaving it untangled.
+
+#+begin_src emacs-lisp :tangle no
+(use-package! lsp-julia
+  :config
+  ;; (setq lsp-julia-flags '("--startup-file=no" "--history-file=no"))
+  (setq lsp-julia-package-dir nil))
+
+(after! julia-mode
+  (add-hook 'julia-mode-hook #'rainbow-delimiters-mode-enable))
+#+end_src
+
+** Scala
+
+#+begin_src emacs-lisp :tangle yes
+;; scala v3 syntax not supported
+(add-hook 'scala-mode-hook (lambda ()
+                             (setq indent-line-function 'indent-relative-maybe)))
 #+end_src
 
 * Windows NT
