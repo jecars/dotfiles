@@ -386,6 +386,7 @@ A benchmark profiler for debugging long Emacs startup times.
   (treemacs-follow-mode 1))
 
 (map! :leader :desc "Select Treemacs" :g "TAB" #'treemacs-select-window)
+(map! :leader :desc "Open Project Sidebar" :g "o p" #'treemacs)
 #+end_src
 
 ** Company
@@ -927,3 +928,10 @@ Additional packages that don't require any configurations.
 (package! good-scroll) ;; better scrolling
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src
+
+used to be (rgb) in init.el
+(package! rainbow-mode :pin "0740f31f300982534183a2f60b1918de418a6f2c")
+(package! kurecolor :pin "fbf98e1e384dd11bbb5764ae54b36353f0691d1e")
+
+(add-hook! 'rainbow-mode-hook
+  (hl-line-mode (if rainbow-mode -1 +1)))
