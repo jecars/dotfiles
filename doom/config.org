@@ -114,7 +114,7 @@ These are some misc keybinds that I use.
 ;; global keybinds
 (map! :g "C-x L" #'count-lines-page)
 (map! :g "C-x l" #'duplicate-dwim)
-
+(map! :g "C-x C-c" nil)
 
 ;; (map! :g "C-m" (lambda ()
 ;;                  (interactive)
@@ -455,7 +455,7 @@ Corfu is an in buffer completion engine.
 (package! platformio-mode)
 #+end_src
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :results none :tangle no
 (use-package! platformio-mode
   :custom
   (platformio-mode-keymap-prefix (kbd "C-c l p"))
@@ -585,7 +585,7 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
 
 ** Tab Bar
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :results none :tangle no
 (map! :after tab-bar :desc "Toggle Tab Bar Mode" :g "C-x t C-0" #'tab-bar-mode)
 #+end_src
 
@@ -676,6 +676,20 @@ Childframe package for eldoc.
       :desc "Eldoc Help at point" :g "C-M-y" #'eldoc-box-help-at-point)
 #+end_src
 
+** pass
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! pass)
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package! pass
+  :defer t
+  :config
+  (setf epa-pinentry-mode 'loopback))
+#+end_src
+
+
 * Programming
 
 Configurations for programming languages.
@@ -693,7 +707,7 @@ General LSP mode configurations.
 
 [[https://github.com/blahgeek/emacs-lsp-booster][emacs-lsp-booster]] improves the performenace of lsp-mode by wrapping the lsp with an executable that translates json messages to elisp bytecode so Emacs doesn't have to.
 
-If =lsp-use-plists= isn't non-nill then =export LSP_USE_PLISTS=true= and run =doom sync --rebuild=.
+If =lsp-use-plists= isn't non-nil then =export LSP_USE_PLISTS=true= and run =doom sync --rebuild=.
 
 #+begin_src emacs-lisp :tangle yes
 (defun lsp-booster--advice-json-parse (old-fn &rest args)
@@ -760,7 +774,7 @@ The shader language for WebGPU
 (package! wgsl-mode)
 #+end_src
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :results none :tangle no
 (with-eval-after-load 'lsp-mode
   (add-to-list 'lsp-language-id-configuration
                '(wgsl-mode . "wgsl"))
@@ -897,6 +911,31 @@ Not using this for now, so leaving it untangled.
                              (setq indent-line-function 'indent-relative-maybe)))
 #+end_src
 
+** SQL
+
+#+begin_src emacs-lisp :tangle yes
+(setq sql-connection-alist
+      '((mydb-prod
+         (sql-product 'mysql)
+         (sql-server (password-store-get "sql/mydb/prod-host"))
+         (sql-user (password-store-get "sql/mydb/prod-user"))
+         (sql-password (password-store-get "sql/mydb/prod-password"))
+         (sql-database (password-store-get "sql/mydb/prod-db"))
+         (sql-port 3306)
+         (sql-default-directory "/ssh:mydb:"))))
+
+(defun connect-to-database (label)
+  "Connect to the database associated with the given `label`."
+  (interactive)
+  (let ((product (car (cdr (assoc label sql-connection-alist)))))
+    (setq sql-product product)
+    (sql-connect label)))
+
+(defun mysql-mydb-prod ()
+  (interactive)
+  (connect-to-database 'mydb-prod))
+#+end_src
+
 * Windows NT
 
 Some configuration for when I have to use windows.
@@ -925,7 +964,7 @@ Some configuration for when I have to use windows.
 Additional packages that don't require any configurations.
 
 #+begin_src emacs-lisp :results none :tangle packages.el
-(package! good-scroll) ;; better scrolling
+;; (package! good-scroll) ;; better scrolling
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src
 

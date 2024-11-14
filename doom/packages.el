@@ -10,7 +10,9 @@
 
 (package! eldoc-box)
 
+(package! pass)
+
 (package! wgsl-mode)
 
-(package! good-scroll) ;; better scrolling
+;; (package! good-scroll) ;; better scrolling
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
