@@ -115,11 +115,6 @@ These are some misc keybinds that I use.
 (map! :g "C-x L" #'count-lines-page)
 (map! :g "C-x l" #'duplicate-dwim)
 (map! :g "C-x C-c" nil)
-
-;; (map! :g "C-m" (lambda ()
-;;                  (interactive)
-;;                  (split-line)
-;;                  (next-line)))
 #+end_src
 
 ** General
@@ -155,7 +150,7 @@ These are some misc keybinds that I use.
 
 ;; font installed from https://typeof.net/Iosevka/
 (set-face-attribute 'default nil
-                    :family "Iosevka Term Extended" :height 110)
+                    :family "Iosevka Term Extended" :height 150)
 
 ;; font installed from https://github.com/protesilaos/iosevka-comfy
 ;; (set-face-attribute 'default nil
@@ -163,7 +158,7 @@ These are some misc keybinds that I use.
 
 ;; set initial size
 (when window-system
-  (set-frame-size (selected-frame) 136 50))
+  (set-frame-size (selected-frame) 160 50))
 
 (map! :desc "Repeat" :g "C-." #'repeat)
 
@@ -344,13 +339,13 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
 
 A benchmark profiler for debugging long Emacs startup times.
 
+Enable profiler when emacs is run with with src_bash{emacs --debug-init}
+
 #+begin_src emacs-lisp :tangle packages.el
 (package! benchmark-init)
 #+end_src
 
 #+begin_src emacs-lisp :tangle yes
-;; enable profiler when ran emacs with
-;; emacs --debug-init
 (when init-file-debug
   (require 'benchmark-init)
   (add-hook 'doom-first-input-hook #'benchmark-init/deactivate))
@@ -499,7 +494,7 @@ Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
 
 scrcpy is a work in progress package that I'm working on to interact with the scrcpy command line utility from emacs.
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :results none :tangle no
 (load! "scrcpy.el")
 #+end_src
 
@@ -569,7 +564,7 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
 
 ** God Mode
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :results none :tangle no
 (after! god-mode
   (god-mode-all -1)
   (map! :desc "Toggle God Mode" :g "M-m" #'god-local-mode)
@@ -601,7 +596,7 @@ White Space butler
 
 ** mu4e
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! mu4e
   :defer 60
   :config
@@ -967,10 +962,3 @@ Additional packages that don't require any configurations.
 ;; (package! good-scroll) ;; better scrolling
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src
-
-used to be (rgb) in init.el
-(package! rainbow-mode :pin "0740f31f300982534183a2f60b1918de418a6f2c")
-(package! kurecolor :pin "fbf98e1e384dd11bbb5764ae54b36353f0691d1e")
-
-(add-hook! 'rainbow-mode-hook
-  (hl-line-mode (if rainbow-mode -1 +1)))

@@ -40,7 +40,7 @@
        ;; (evil +everywhere); come to the dark side, we have cookies
        file-templates    ; auto-snippets for empty files
        fold              ; (nigh) universal code folding
-       (format)  ; automated prettiness
+       (format +lsp)  ; automated prettiness
        ;; god               ; run Emacs commands without modifier keys
        ;;lispy             ; vim for lisp, for people who don't like vim
        multiple-cursors  ; editing in many places at once
@@ -118,14 +118,14 @@
        ;; (fsharp +lsp)            ; ML stands for Microsoft's Language
        ;;fstar             ; (dependent) types and (monadic) effects and Z3
        ;; gdscript          ; the language you waited for
-       (go +lsp +tree-sitter)         ; the hipster dialect
+       ;; (go +lsp +tree-sitter)         ; the hipster dialect
        ;;(graphql +lsp)    ; Give queries a REST
        ;; (haskell +lsp +tree-sitter)    ; a language that's lazier than I am
        ;;hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
        (json +lsp)              ; At least it ain't XML
-       (java +lsp)       ; the poster child for carpal tunnel syndrome
-       (javascript +lsp)        ; all(hope(abandon(ye(who(enter(here))))))
+       ;; (java +lsp)       ; the poster child for carpal tunnel syndrome
+       (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
        ;; (julia +tree-sitter +snail)             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        (latex +lsp +cdlatex +latexmk)             ; writing papers in Emacs has never been so fun
@@ -135,8 +135,8 @@
        markdown          ; writing docs for people to ignore
        ;;nim               ; python + lisp at the speed of c
        ;;nix               ; I hereby declare "nix geht mehr!"
-       (ocaml +tree-sitter +lsp)             ; an objective camel
-       (org +journal +gnuplot +roam2 +hugo)               ; organize your plain life in plain text
+       ;; (ocaml +tree-sitter +lsp)             ; an objective camel
+       (org +journal +gnuplot +hugo +roam2)               ; organize your plain life in plain text
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;graphviz          ; diagrams for confusing yourself even more
@@ -149,19 +149,19 @@
        ;;rst               ; ReST in peace
        ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
        (rust +lsp +tree-sitter)       ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
-       (scala +lsp +tree-sitter)             ; java, but good
+       ;; (scala +lsp +tree-sitter)             ; java, but good
        ;;(scheme +guile)   ; a fully conniving family of lisps
        (sh +lsp)                ; she sells {ba,z,fi}sh shells on the C xor
        ;;sml
        ;;solidity          ; do you need a blockchain? No.
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
-       (web +lsp)               ; the tubes
+       (web +lsp +tree-sitter)               ; the tubes
        (yaml +lsp)              ; JSON, but readable
        ;;zig               ; C, but simpler
 
        :email
-       (mu4e +org +gmail)
+       ;; (mu4e +org +gmail)
        ;;notmuch
        ;; (wanderlust +gmail)
 
