@@ -4,13 +4,7 @@
 
 (package! gptel)
 
-(package! platformio-mode)
-
 (package! org-roam-ui)
-
-(package! eldoc-box)
-
-(package! pass)
 
 (package! wgsl-mode)
 

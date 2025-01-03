@@ -158,7 +158,7 @@ These are some misc keybinds that I use.
 
 ;; set initial size
 (when window-system
-  (set-frame-size (selected-frame) 160 50))
+  (set-frame-size (selected-frame) 180 50))
 
 (map! :desc "Repeat" :g "C-." #'repeat)
 
@@ -261,7 +261,7 @@ Other small changes.
      "\n")))
 #+end_src
 
-* Themes
+* Theme
 
 Set theme and customize faces on some themes that I use.
 
@@ -270,20 +270,7 @@ Set theme and customize faces on some themes that I use.
 #+end_src
 
 #+begin_src emacs-lisp :results none
-(setq doom-theme
-      ;; 'doom-one
-      ;; 'doom-old-hope
-      ;; 'doom-1337
-      'darktooth)
-#+end_src
-
-** Doom 1337 Customizations
-
-#+begin_src emacs-lisp :results none
-(custom-theme-set-faces! 'doom-1337
-  '(mode-line :background "#476685")
-  '(mode-line-inactive :background "#242628")
-  '(hl-line :background "#252526"))
+(setq doom-theme 'darktooth)
 #+end_src
 
 ** Darktooth Customizations
@@ -357,7 +344,8 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
 (use-package! diredfl
   :defer t
   :config
-  (setq dired-listing-switches "-ahHl -v --group-directories-first -H"))
+  (setq dired-listing-switches "-ahHl -v --group-directories-first -H")
+  (setq dired-free-space nil))
 #+end_src
 
 ** Tree Sitter
@@ -397,6 +385,7 @@ Company is a completion engine. I've been using corfu instead though.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package! anzu
+  :defer 5
   :config
   (global-anzu-mode t))
 #+end_src
@@ -446,7 +435,7 @@ Corfu is an in buffer completion engine.
 
 [[https://github.com/ZachMassia/PlatformIO-Mode][PlatformIO]] is allows you to interact with PlatformIO Core CLI from emacs.
 
-#+begin_src emacs-lisp :tangle packages.el
+#+begin_src emacs-lisp :tangle no
 (package! platformio-mode)
 #+end_src
 
@@ -649,19 +638,22 @@ White Space butler
 Go to any where on screen within your buffer.
 
 #+begin_src emacs-lisp :tangle yes
-(map! :after avy
-      :desc "Avy Goto Character" :leader "s c" #'avy-goto-char-2)
+(use-package! avy
+  :defer 30
+  :config
+  (map!
+   :desc "Avy Goto Character" :leader "s c" #'avy-goto-char-2))
 #+end_src
 
 ** eldoc-box
 
 Childframe package for eldoc.
 
-#+begin_src emacs-lisp :tangle packages.el
+#+begin_src emacs-lisp :tangle no
 (package! eldoc-box)
 #+end_src
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! eldoc-box
   :config
    (custom-set-faces!
@@ -673,11 +665,11 @@ Childframe package for eldoc.
 
 ** pass
 
-#+begin_src emacs-lisp :tangle packages.el
+#+begin_src emacs-lisp :tangle no
 (package! pass)
 #+end_src
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! pass
   :defer t
   :config
@@ -824,6 +816,16 @@ The shader language for WebGPU
                     :major-modes '(c-mode c++-mode)
                     :remote? t
                     :server-id 'clangd-remote)))
+
+(after! lsp-clangd
+  (setq lsp-clients-clangd-args
+        '("-j=3"
+          "--background-index"
+          "--clang-tidy"
+          "--completion-style=detailed"
+          "--header-insertion=never"
+          "--header-insertion-decorators=0"))
+  (set-lsp-priority! 'clangd 2))
 #+end_src
 
 ** C# / C Sharp
@@ -839,6 +841,8 @@ The shader language for WebGPU
 (after! lsp-mode
   :config
   (setq lsp-csharp-omnisharp-enable-decompilation-support t))
+
+;; (add-to-list 'lsp-file-watch-ignored-directories "[/\\\\]\\.cache\\'")
 #+end_src
 
 ** JavaScript
@@ -900,7 +904,7 @@ Not using this for now, so leaving it untangled.
 
 ** Scala
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 ;; scala v3 syntax not supported
 (add-hook 'scala-mode-hook (lambda ()
                              (setq indent-line-function 'indent-relative-maybe)))
@@ -931,6 +935,15 @@ Not using this for now, so leaving it untangled.
   (connect-to-database 'mydb-prod))
 #+end_src
 
+** Lua
+
+#+begin_src emacs-lisp :tangle yes
+;; (use-package! lua-mode
+;;   :init
+;;   (setq! +lua-lsp-dir "/opt/homebrew/Cellar/lua-language-server/3.13.2/libexec"))
+
+#+end_src
+
 * Windows NT
 
 Some configuration for when I have to use windows.
@@ -952,6 +965,14 @@ Some configuration for when I have to use windows.
           (side . bottom)
           (slot . -1)
           (window-parameters . ((no-delete-other-windows . t)))))))))
+#+end_src
+
+* MacOS
+
+#+begin_src emacs-lisp :tangle yes
+(when (eq system-type 'darwin)
+  (progn
+    (map! :leader :desc "Open X-Widget" :g "o x" #'xwidget-webkit-browse-url)))
 #+end_src
 
 * Other Packages
