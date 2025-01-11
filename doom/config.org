@@ -150,7 +150,7 @@ These are some misc keybinds that I use.
 
 ;; font installed from https://typeof.net/Iosevka/
 (set-face-attribute 'default nil
-                    :family "Iosevka Term Extended" :height 150)
+                    :family "Iosevka Term Extended" :height 160)
 
 ;; font installed from https://github.com/protesilaos/iosevka-comfy
 ;; (set-face-attribute 'default nil
@@ -968,6 +968,8 @@ Some configuration for when I have to use windows.
 #+end_src
 
 * MacOS
+
+** X Widgets
 
 #+begin_src emacs-lisp :tangle yes
 (when (eq system-type 'darwin)
