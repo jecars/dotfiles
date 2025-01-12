@@ -1,0 +1,12 @@
+#+title: MacOS Configurations
+
+* System options
+
+Disable the popup of special characters when holding a key
+
+https://apple.stackexchange.com/questions/332769/macos-disable-popup-showing-accented-characters-when-holding-down-a-key
+
+#+begin_src shell :eval no
+defaults write -g ApplePressAndHoldEnabled -bool false
+#+end_src
+
