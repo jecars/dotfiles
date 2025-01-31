@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: srcelisp
+# uuid: srcelisp
+# key: srcelisp
+# condition: t
+# --
+#+begin_src emacs-lisp :results output
+$0
+#+end_src

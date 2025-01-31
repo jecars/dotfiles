@@ -75,9 +75,10 @@ Don't ask me why I'm weird.
                       "~/Pictures/o_o/monkaStare.png"
                       "~/Pictures/o_o/Stare.png"
                       "~/Pictures/o_o/crunchy-cat-luna.png"
+                      "~/Pictures/o_o/knight.png"
                       "~/Pictures/o_o/mikeStare.png")))
     (ffap (nth (random (length image-list)) image-list)))
-  (image-transform-fit-to-window))
+  (image-transform-fit-to-window))'
 #+end_src
 
 *** jecs/listening
@@ -437,7 +438,9 @@ Corfu is an in buffer completion engine.
 
 #+begin_src emacs-lisp :tangle no
 (package! platformio-mode)
-#+end_src
+#+end_#+begin_src 
+
+      #+end_src
 
 #+begin_src emacs-lisp :results none :tangle no
 (use-package! platformio-mode
@@ -513,10 +516,16 @@ scrcpy is a work in progress package that I'm working on to interact with the sc
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags:\n")
       :unnarrowed t)
      ("m" "math" plain "#+STARTUP: latexpreview\n%?" :target
-      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Math\n")
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: math\n")
       :unnarrowed t)
      ("p" "programming" plain "#+STARTUP: latexpreview\n%?" :target
-      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Programming\n")
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: programming\n")
+      :unnarrowed t)
+     ("p" "legal" plain "#+STARTUP: latexpreview\n%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: legal\n")
+      :unnarrowed t)
+     ("p" "system" plain "#+STARTUP: latexpreview\n%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: system\n")
       :unnarrowed t))))
 #+end_src
 
@@ -676,6 +685,12 @@ Childframe package for eldoc.
   (setf epa-pinentry-mode 'loopback))
 #+end_src
 
+** Ultra Scroll
+
+#+begin_src emacs-lisp :tangle packages.el
+;; (package! ultra-scroll
+;;   :recipe (:host github :repo "jdtsmith/ultra-scroll"))
+#+end_src
 
 * Programming
 
