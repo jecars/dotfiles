@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: srchaskell
+# key: srchaskell
+# --
+#+begin_src haskell :tangle no :eval no
+$0
+#+end_src

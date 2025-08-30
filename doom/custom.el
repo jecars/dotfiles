@@ -6,6 +6,9 @@
  '(custom-safe-themes
    '("8c7e832be864674c220f9a9361c851917a93f921fedb7717b1b5ece47690c098" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
+ '(org-agenda-files
+   '("/Users/jecs/.config/doom/config.org" "/Users/jecs/org/general.org"
+     "/Users/jecs/org/readme.org"))
  '(smtpmail-smtp-server "smtp.gmail.com")
  '(smtpmail-smtp-service 587))
 

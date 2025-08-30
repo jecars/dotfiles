@@ -51,10 +51,10 @@ whatever mode was previously active.
 
 #+begin_src emacs-lisp :tangle yes
 (defun jecs/toggle-major-mode ()
-   (interactive)
-   (let ((old-major-mode major-mode))
-     (fundamental-mode)
-     (funcall old-major-mode)))
+  (interactive)
+  (let ((old-major-mode major-mode))
+    (fundamental-mode)
+    (funcall old-major-mode)))
 #+end_src
 
 #+RESULTS:
@@ -100,6 +100,18 @@ Don't ask me why I'm weird.
   (message "%s" arg))
 #+end_src
 
+*** jecs/sp-kill-entire-sexp
+
+#+begin_src emacs-lisp :results none
+(defun jecs/sp-kill-sexp-region ()
+  "Kill the text between sp-beginning-of-sexp and sp-end-of-sexp."
+  (interactive)
+  (save-excursion
+    (let ((beg (progn (sp-beginning-of-sexp) (point)))
+          (end (progn (sp-end-of-sexp) (point))))
+      (kill-region beg end))))
+#+end_src
+
 ** Keybinds
 
 These are some misc keybinds that I use.
@@ -108,14 +120,19 @@ These are some misc keybinds that I use.
 ;; custom keybinds
 (map! :leader
       (:prefix-map ("j" . "jecs")
-       :desc "Stare" "s" #'jecs/stare
+       :desc "Stare" "S" #'jecs/stare
        :desc "Listening" "l" #'jecs/listening
-       :desc "Open Phone" "p" #'scrcpy-open))
+       :desc "Open Phone" "p" #'scrcpy-open
+       :desc "Toggle Major Mode" "t" #'jecs/toggle-major-mode))
 
 ;; global keybinds
-(map! :g "C-x L" #'count-lines-page)
-(map! :g "C-x l" #'duplicate-dwim)
-(map! :g "C-x C-c" nil)
+(map! :g "C-x L" #'count-lines-page
+      :g "C-x l" #'duplicate-dwim
+      :g "C-x C-c" nil
+      :g "C-z" nil ;; use C-x C-z
+      :g "s-k" #'kill-buffer-and-window
+      :g "C-M-z" #'sp-backward-up-sexp
+      :g "C-M-S-k" #'jecs/sp-kill-sexp-region)
 #+end_src
 
 ** General
@@ -135,7 +152,7 @@ These are some misc keybinds that I use.
 (setq org-directory "~/org/")
 
 ;; frame title
-(set-frame-name "emacs btw")
+(set-frame-name "emacs")
 
 ;; dont ask me
 (setq confirm-kill-emacs nil
@@ -143,15 +160,19 @@ These are some misc keybinds that I use.
 
 (setq-default tab-width 2)
 (setq tab-width 2)
+(setq show-paren-delay 0)
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 
+(setq read-process-output-max (* 1024 1024))
+
 ;; (set-frame-font "Source Code Pro 11" nil t)
 
-;; font installed from https://typeof.net/Iosevka/
-(set-face-attribute 'default nil
-                    :family "Iosevka Term Extended" :height 160)
+(set-frame-font "Iosevka 18")
+
+;; (set-face-attribute 'default nil
+;;                     :family "Iosevka" :height 180)
 
 ;; font installed from https://github.com/protesilaos/iosevka-comfy
 ;; (set-face-attribute 'default nil
@@ -162,12 +183,22 @@ These are some misc keybinds that I use.
   (set-frame-size (selected-frame) 180 50))
 
 (map! :desc "Repeat" :g "C-." #'repeat)
+(map!
+ :desc "New Emacs Instance" :g "C-c o e" #'restart-emacs-start-new-emacs
+ :desc "Open Calculator" :g "C-c o c" #'calc
+ :desc "Open Calendar" :g "C-c o k" #'calendar)
 
 (set-frame-parameter nil 'alpha-background 98)
 (add-to-list 'default-frame-alist '(alpha-background . 98))
+
+(add-hook! term-mode-hook (display-line-numbers-mode 0))
+(add-hook! vterm-mode-hook (display-line-numbers-mode 0))
+(add-hook! shell-mode-hook (display-line-numbers-mode 0))
+(add-hook! treemacs-mode-hook (display-line-numbers-mode 0))
+(add-hook! eshell-mode-hook (display-line-numbers-mode 0))
 #+end_src
 
-** Doom Dashboard
+** Doom
 
 My doom dashboard configuration.
 
@@ -260,6 +291,9 @@ Other small changes.
        (doom-display-benchmark-h 'return))
       'face 'doom-dashboard-loaded)
      "\n")))
+
+(setq doom-modeline-height 28)
+(setq doom-modeline-buffer-modification-icon nil)
 #+end_src
 
 * Theme
@@ -270,7 +304,7 @@ Set theme and customize faces on some themes that I use.
 (package! darktooth-theme)
 #+end_src
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :eval no
 (setq doom-theme 'darktooth)
 #+end_src
 
@@ -278,7 +312,7 @@ Set theme and customize faces on some themes that I use.
 
 The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is my favourite theme, but I had to make some customizations for a couple things.
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :eval no
 (custom-theme-set-faces! 'darktooth
   ;; all colours come from darktooh theme unless specified
 
@@ -351,7 +385,7 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
 
 ** Tree Sitter
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :tangle yes :eval no
 (use-package! tree-sitter
   :hook
   ((prog-mode . global-tree-sitter-mode)
@@ -365,7 +399,7 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
 
 ** Treemacs
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :tangle no
 (after! treemacs
   (treemacs-follow-mode 1))
 
@@ -377,7 +411,7 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
 
 Company is a completion engine. I've been using corfu instead though.
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :tangle no
 (after! company
   (setq company-minimum-prefix-length 1))
 #+end_src
@@ -395,38 +429,33 @@ Company is a completion engine. I've been using corfu instead though.
 
 Gptel is a tool to interact with large language models in emacs.
 
-I use a local llama3.
-
-#+begin_src emacs-lisp :tangle packages.el
-(package! gptel)
-#+end_src
-
 #+begin_src emacs-lisp :results none
 (use-package! gptel
   :defer t
   :bind
-  (("C-c o g" . #'gptel))
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
-  (setq gptel-model "llama3:latest"
-        gptel-backend (gptel-make-ollama "Ollama"
-                        :host "localhost:11434"
-                        :stream t
-                        :models '("llama3:latest"))))
+  (setq gptel-default-mode 'org-mode)
+  (setq gptel-model 'o3))
+
+;; (setq gptel-model "llama3:latest"
+;;         gptel-backend (gptel-make-ollama "Ollama"
+;;                         :host "localhost:11434"
+;;                         :stream t
+;;                         :models '("llama3:latest")))
 #+end_src
 
 ** Corfu
 
 Corfu is an in buffer completion engine.
 
-#+begin_src emacs-lisp :results none
+#+begin_src emacs-lisp :tangle yes
 (after! corfu
   (unless (display-graphic-p)
     (corfu-terminal-mode +1))
   (setq corfu-auto-prefix 2) 
   (setq corfu-auto-delay 0.1) ;; default 0.5
-  (setq corfu-popupinfo-delay '(0.3 . 0.3)) ;; default 0.5 . 0.1
-  
+  ;; (setq corfu-popupinfo-delay '(0.3 . 0.3)) ;; default 0.5 . 0.1
   (map! :map corfu-map
         "TAB" #'corfu-insert
         "<tab>" #'corfu-insert))
@@ -515,17 +544,26 @@ scrcpy is a work in progress package that I'm working on to interact with the sc
    '(("d" "default" plain "%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags:\n")
       :unnarrowed t)
+     ("e" "emacs" plain "%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: emacs\n")
+      :unnarrowed t)
      ("m" "math" plain "#+STARTUP: latexpreview\n%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: math\n")
       :unnarrowed t)
-     ("p" "programming" plain "#+STARTUP: latexpreview\n%?" :target
+     ("p" "programming" plain "%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: programming\n")
       :unnarrowed t)
-     ("p" "legal" plain "#+STARTUP: latexpreview\n%?" :target
+     ("l" "legal" plain "#+STARTUP: latexpreview\n%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: legal\n")
       :unnarrowed t)
-     ("p" "system" plain "#+STARTUP: latexpreview\n%?" :target
+     ("w" "work" plain "%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: work\n")
+      :unnarrowed t)
+     ("s" "system" plain "#+STARTUP: latexpreview\n%?" :target
       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: system\n")
+      :unnarrowed t)
+     ("c" "cloud" plain "%?" :target
+      (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: cloud\n")
       :unnarrowed t))))
 #+end_src
 
@@ -631,7 +669,7 @@ White Space butler
   :recipe (:host github :repo "jdtsmith/indent-bars"))
 #+end_src
 
-#+begin_src emacs-lisp :tangle no :results none
+#+begin_src emacs-lisp :tangle no
 (use-package! indent-bars
   :hook ((prog-mode . indent-bars-mode))
   :custom
@@ -646,7 +684,7 @@ White Space butler
 
 Go to any where on screen within your buffer.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! avy
   :defer 30
   :config
@@ -685,12 +723,127 @@ Childframe package for eldoc.
   (setf epa-pinentry-mode 'loopback))
 #+end_src
 
-** Ultra Scroll
+** Rotate Text
+
+#+begin_src emacs-lisp :tangle yes
+(defun jecs/rotate-text (prefix)
+  "Rotate text in region using `rotate-text' at each word boundary.
+If there is no region then call `rotate-text' normally."
+  (interactive "p")
+  (let ((numeric-prefix (if (null prefix) 1
+                          (prefix-numeric-value prefix))))
+    (if (not (use-region-p))
+        (rotate-text numeric-prefix)
+      (let ((case-fold-search 0)
+            (start (region-beginning))
+            (end (region-end)))
+        (save-excursion
+          (while (and (goto-char end)
+                      (setq end (re-search-backward "\\b\\w" start t)))
+            (condition-case nil
+                (rotate-text numeric-prefix)
+              (error nil))))))))
+
+(defun jecs/rotate-text-backward (prefix)
+  "Same as `jecs/rotate-text' but backwards."
+  (interactive "p")
+  (let ((numeric-prefix (if (null prefix) 1
+                          (prefix-numeric-value prefix))))
+    (jecs/rotate-text (- numeric-prefix))))
+
+(use-package! rotate-text
+  :bind
+  ("C-c ]" . jecs/rotate-text)
+  ("C-c [" . jecs/rotate-text-backward)
+  :config
+  (add-to-list 'rotate-text-words '("none" "some"))
+  (add-to-list 'rotate-text-words '("start" "end"))
+  (add-to-list 'rotate-text-words '("buy" "sell"))
+  (add-to-list 'rotate-text-words '("before" "after"))
+  (add-to-list 'rotate-text-words '("min" "max"))
+  (add-to-list 'rotate-text-words '("win" "lose"))
+  (add-to-list 'rotate-text-words '("high" "low")))
+#+end_src
+
+** Verb
+
+[[https://github.com/federicotdn/verb][Verb]] is an HTTP client for emacs.
 
 #+begin_src emacs-lisp :tangle packages.el
-;; (package! ultra-scroll
-;;   :recipe (:host github :repo "jdtsmith/ultra-scroll"))
+(package! verb)
 #+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(after! verb
+  (setq! verb-trim-body-end "[ \t\n\r]+"))
+
+(map! :after org
+      :desc "Verb Prefix"
+      :map org-mode-map
+      "C-c C-r" verb-command-map)
+#+end_src
+
+** Slack
+
+Slack [[https://github.com/emacs-slack/emacs-slack][client for emacs]].
+
+Note to self:
+
+If your token expires run =M-x slack-refresh-token=
+
+#+begin_src emacs-lisp :results output :tangle packages.el
+(package! slack)
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package! slack
+  :commands (slack-start slack-stop)
+  :init
+  (map! :prefix ("C-z" . "Slack")
+        :desc "Start slack" "S" #'slack-start
+        :desc "Open a chat"  "c" #'slack-select-rooms
+        :desc "Select unread rooms"  "u" #'slack-select-unread-rooms
+        :desc "Display a user's profile"  "U" #'slack-user-select
+        :desc "Search all channels"  "s" #'slack-search-from-messages
+        :desc "Jump to app"  "j" #'slack-jump-to-app
+        :desc "Edit message"  "e" #'slack-message-edit
+        :desc "Delete message"  "k" #'slack-message-delete
+        :desc "Reply in thread"  "t" #'slack-thread-show-or-create
+        :desc "Refresh"  "g" #'slack-message-redisplay
+        :desc "Refresh Quick"  "G" #'slack-conversations-list-update-quick
+        :desc "Quit slack"  "K" #'slack-stop)
+  :config
+  (let* ((chan-secret (auth-source-pick-first-password
+                       :host "slack"
+                       :user "channels"))
+         (my/slack-channels (and chan-secret (split-string chan-secret))))
+    (slack-register-team
+     :name "work" :default t
+     :token  (auth-source-pick-first-password
+              :host "slack" :user "token")
+     :cookie (auth-source-pick-first-password
+              :host "slack" :user "cookie")
+     :subscribed-channels my/slack-channels
+     :full-and-display-names t))
+  (setq slack-prefer-current-team t)
+  (map! :map slack-mode-map
+        "@"      #'slack-message-embed-mention
+        "#"      #'slack-message-embed-channel)
+  (map! :map slack-thread-message-buffer-mode-map
+        "@"      #'slack-message-embed-mention
+        "#"      #'slack-message-embed-channel
+        "C-c '"  #'slack-message-write-another-buffer)
+  (map! :map slack-message-buffer-mode-map
+        "C-c '"  #'slack-message-write-another-buffer)
+  (map! :map slack-message-compose-buffer-mode-map
+        "C-c '"  #'slack-message-send-from-buffer))
+
+(use-package! alert
+  :commands (alert)
+  :init
+  (setq alert-default-style 'notifier))
+#+end_src
+
 
 * Programming
 
@@ -700,9 +853,17 @@ Configurations for programming languages.
 
 General LSP mode configurations.
 
-#+begin_src emacs-lisp :results none :tangle no
-(after! lsp-mode
-  (setq lsp-inlay-hint-enable t))
+#+begin_src emacs-lisp :results none :tangle yes
+(use-package lsp-mode
+  :defer t
+  :config
+  (setq lsp-idle-delay 0.03))
+
+(after! lsp-ui-sideline
+  (setq lsp-ui-sideline-diagnostic-max-line-length 300))
+
+(after! lsp-ui-doc
+  (setq lsp-ui-doc-max-width 300))
 #+end_src
 
 ** Emacs LSP Booster
@@ -711,7 +872,9 @@ General LSP mode configurations.
 
 If =lsp-use-plists= isn't non-nil then =export LSP_USE_PLISTS=true= and run =doom sync --rebuild=.
 
-#+begin_src emacs-lisp :tangle yes
+No longer using since added by doom lsp module.
+
+#+begin_src emacs-lisp :tangle no
 (defun lsp-booster--advice-json-parse (old-fn &rest args)
   "Try to parse bytecode instead of json."
   (or
@@ -754,16 +917,6 @@ If =lsp-use-plists= isn't non-nil then =export LSP_USE_PLISTS=true= and run =doo
 ** Python
 
 #+begin_src emacs-lisp :results none
-(after! python
-  (setq! lsp-pylsp-plugins-black-enabled t))
-
-;; debugging
-(after! dap-mode
-  (setq dap-python-debugger 'debugpy))
-
-(setq realgud:pdb-command-name "python3 -m pdb"
-      gud-pdb-command-name "python3 -m pdb")
-
 (after! lsp-mode
   (setq lsp-pyright-multi-root nil))
 #+end_src
@@ -772,7 +925,7 @@ If =lsp-use-plists= isn't non-nil then =export LSP_USE_PLISTS=true= and run =doo
 
 The shader language for WebGPU
 
-#+begin_src emacs-lisp :tangle packages.el
+#+begin_src emacs-lisp :tangle no
 (package! wgsl-mode)
 #+end_src
 
@@ -793,37 +946,43 @@ The shader language for WebGPU
 ;; (after! rustic
 ;;   (setq lsp-inlay-hint-enable t))
 
-;; (after! lsp-mode
-;;    (setq lsp-rust-analyzer-server-command "emacs-lsp-booster rust-analyzer"))
+;; (setq dape-configurations
+;;       (list
+;;        (list :name "Rust LLDB"
+;;              :type "lldb"
+;;              :program "${workspaceFolder}/target/debug/<your-binary>"
+;;              :request "launch"
+;;              :cwd "${workspaceFolder}"
+;;              :stopOnEntry t)))
 
-(after! dap-mode
-  (dap-ui-mode)
-  (dap-ui-controls-mode 1)
+;; (after! dap-mode
+;;   (dap-ui-mode)
+;;   (dap-ui-controls-mode 1)
 
-  ;; (require 'dap-lldb)
-  (require 'dap-cpptools)
-  ;; (require 'dap-gdb-lldb)
-  ;; installs .extension/vscode
-  ;; (dap-gdb-lldb-setup)
-  (dap-cpptools-setup)
-  (dap-register-debug-template "Rust::CppTools Run Configuration"
-                               (list :type "cppdbg"
-                                     :request "launch"
-                                     :name "Rust::Run"
-                                     :MIMode "gdb"
-                                     :miDebuggerPath "rust-gdb"
-                                     :environment []
-                                     :program "${workspaceFolder}/target/debug/image2ascii"
-                                     :cwd "${workspaceFolder}"
-                                     :console "external"
-                                     :dap-compilation "cargo build"
-                                     :dap-compilation-dir "${workspaceFolder}")))
+;;   ;; (require 'dap-lldb)
+;;   (require 'dap-cpptools)
+;;   ;; (require 'dap-gdb-lldb)
+;;   ;; installs .extension/vscode
+;;   ;; (dap-gdb-lldb-setup)
+;;   (dap-cpptools-setup)
+;;   (dap-register-debug-template "Rust::CppTools Run Configuration"
+;;                                (list :type "cppdbg"
+;;                                      :request "launch"
+;;                                      :name "Rust::Run"
+;;                                      :MIMode "gdb"
+;;                                      :miDebuggerPath "rust-gdb"
+;;                                      :environment []
+;;                                      :program "${workspaceFolder}/target/debug/image2ascii"
+;;                                      :cwd "${workspaceFolder}"
+;;                                      :console "external"
+;;                                      :dap-compilation "cargo build"
+;;                                      :dap-compilation-dir "${workspaceFolder}")))
 #+end_src
 
 ** C/C++
 
 #+begin_src emacs-lisp :results none
-(setq c-basic-offset 2)
+(setq c-basic-offset 4)
 
 (after! (tramp lsp-mode)
   (lsp-register-client ;; c/c++ remote LSP
@@ -853,14 +1012,15 @@ The shader language for WebGPU
                     :remote? t
                     :server-id 'csharp-ls-remote)))
 
+(after! csharp-mode
+  (set-formatter! 'csharpier '("dotnet-csharpier" "--write-stdout") :modes '(csharp-mode)))
+
 (after! lsp-mode
   :config
   (setq lsp-csharp-omnisharp-enable-decompilation-support t))
-
-;; (add-to-list 'lsp-file-watch-ignored-directories "[/\\\\]\\.cache\\'")
 #+end_src
 
-** JavaScript
+** JavaScript / TypeScript
 
 #+begin_src emacs-lisp :results none
 (after! (tramp lsp-mode)
@@ -869,6 +1029,9 @@ The shader language for WebGPU
                     :major-modes '(rjsx-mode js2-mode typescript-mode)
                     :remote? t
                     :server-id 'ts-ls-remote)))
+
+(after! typescript-mode
+  (setq ts-indent-level 4))
 #+end_src
 
 ** ReasonML
@@ -893,9 +1056,9 @@ Not using this anymore, so leaving it untangled.
 Not using this anymore, so leaving it untangled.
 
 #+begin_src emacs-lisp :tangle no
-(use-package! fsharp-mode
+(use-package! fsharp-mode-structure
   :config
-  (setq-default fsharp-indent-offset 2))
+  (setq-default fsharp-indent-offset 4))
 
 (use-package! lsp-mode
   :defer t
@@ -950,13 +1113,11 @@ Not using this for now, so leaving it untangled.
   (connect-to-database 'mydb-prod))
 #+end_src
 
-** Lua
+** Haskell
 
 #+begin_src emacs-lisp :tangle yes
-;; (use-package! lua-mode
-;;   :init
-;;   (setq! +lua-lsp-dir "/opt/homebrew/Cellar/lua-language-server/3.13.2/libexec"))
-
+(after! lsp-haskell
+  (setq lsp-haskell-formatting-provider "ormolu"))
 #+end_src
 
 * Windows NT
@@ -988,8 +1149,12 @@ Some configuration for when I have to use windows.
 
 #+begin_src emacs-lisp :tangle yes
 (when (eq system-type 'darwin)
-  (progn
-    (map! :leader :desc "Open X-Widget" :g "o x" #'xwidget-webkit-browse-url)))
+  (defun jecs/open-raycast ()
+    "Open Raycast via AppleScript"
+    (interactive)
+    (shell-command "open /Applications/Raycast.app"))
+  (map! :desc "Open Raycast" :g "C-M-x" #'jecs/open-raycast)
+  (map! :leader :desc "Open X-Widget" :g "o x" #'xwidget-webkit-browse-url))
 #+end_src
 
 * Other Packages
@@ -997,6 +1162,5 @@ Some configuration for when I have to use windows.
 Additional packages that don't require any configurations.
 
 #+begin_src emacs-lisp :results none :tangle packages.el
-;; (package! good-scroll) ;; better scrolling
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src

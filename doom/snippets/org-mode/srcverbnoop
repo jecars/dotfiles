@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: srcverbnoop
+# key: srcverbnoop
+# --
+
+#+begin_src verb :wrap src ob-verb-response
+$0get
+#+end_src

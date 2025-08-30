@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: srcverbjson
+# key: srcverbjson
+# --
+
+#+begin_src verb :wrap src json :op send get-body
+$0get
+#+end_src

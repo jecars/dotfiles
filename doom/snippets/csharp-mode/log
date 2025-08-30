@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: log
+# key: log
+# condition: t
+# --
+Console.WriteLine($"$0");
