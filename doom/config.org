@@ -78,7 +78,7 @@ Don't ask me why I'm weird.
                       "~/Pictures/o_o/knight.png"
                       "~/Pictures/o_o/mikeStare.png")))
     (ffap (nth (random (length image-list)) image-list)))
-  (image-transform-fit-to-window))'
+  (image-transform-fit-to-window))
 #+end_src
 
 *** jecs/listening
@@ -129,10 +129,24 @@ These are some misc keybinds that I use.
 (map! :g "C-x L" #'count-lines-page
       :g "C-x l" #'duplicate-dwim
       :g "C-x C-c" nil
-      :g "C-z" nil ;; use C-x C-z
       :g "s-k" #'kill-buffer-and-window
       :g "C-M-z" #'sp-backward-up-sexp
       :g "C-M-S-k" #'jecs/sp-kill-sexp-region)
+
+(if (display-graphic-p)
+    (map! :g "C-z" nil))
+
+(map! :desc "Repeat" :g "C-." #'repeat)
+
+(map! :leader
+      ;; misc
+      :desc "New Emacs Instance" "o e" #'restart-emacs-start-new-emacs
+      :desc "Open Calculator"    "o c" #'calc
+      :desc "Open Calendar"      "o k" #'calendar
+
+      ;; terminals
+      :desc "Open large vterm (here)" "o t" #'+vterm/here
+      :desc "Popup vterm"             "t t" #'+vterm/toggle)
 #+end_src
 
 ** General
@@ -161,13 +175,12 @@ These are some misc keybinds that I use.
 (setq-default tab-width 2)
 (setq tab-width 2)
 (setq show-paren-delay 0)
+(set-fringe-mode 0)
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 
 (setq read-process-output-max (* 1024 1024))
-
-;; (set-frame-font "Source Code Pro 11" nil t)
 
 (set-frame-font "Iosevka 18")
 
@@ -182,20 +195,19 @@ These are some misc keybinds that I use.
 (when window-system
   (set-frame-size (selected-frame) 180 50))
 
-(map! :desc "Repeat" :g "C-." #'repeat)
-(map!
- :desc "New Emacs Instance" :g "C-c o e" #'restart-emacs-start-new-emacs
- :desc "Open Calculator" :g "C-c o c" #'calc
- :desc "Open Calendar" :g "C-c o k" #'calendar)
-
 (set-frame-parameter nil 'alpha-background 98)
 (add-to-list 'default-frame-alist '(alpha-background . 98))
 
 (add-hook! term-mode-hook (display-line-numbers-mode 0))
 (add-hook! vterm-mode-hook (display-line-numbers-mode 0))
 (add-hook! shell-mode-hook (display-line-numbers-mode 0))
-(add-hook! treemacs-mode-hook (display-line-numbers-mode 0))
 (add-hook! eshell-mode-hook (display-line-numbers-mode 0))
+
+(setq initial-frame-alist
+      '((top  . -1)
+        (left . 0)
+        (width . 220)
+        (height . 70)))
 #+end_src
 
 ** Doom
@@ -210,7 +222,8 @@ A pool of ASCII arts that will be randomly chosen from for the dashboard.
 #+begin_src elisp :tangle no :results none
 (list (list (f-read-text "./asciis/aqua.txt"))
       (list (f-read-text "./asciis/maid.txt"))
-      (list (f-read-text "./asciis/rias.txt")))
+      (list (f-read-text "./asciis/rias.txt"))
+      (list (f-read-text "./asciis/osaka.txt")))
 #+end_src
 
 #+begin_src emacs-lisp :tangle yes :var banners=tangled/banners :results none
@@ -254,11 +267,16 @@ If RETURN-P, return the message as a string instead of displaying it."
 Remove the footer widget from the dashboard.
 
 #+begin_src emacs-lisp :results none
+(defun jecs/doom-dashboard-maybe-banner ()
+  "Show banner only when frame is large enough."
+  (when (and (>= (frame-width) 91)
+             (>= (frame-height) 41))
+    (doom-dashboard-widget-banner)))
+
 (setq +doom-dashboard-functions
-      '(doom-dashboard-widget-banner
+      '(jecs/doom-dashboard-maybe-banner
         doom-dashboard-widget-shortmenu
         doom-dashboard-widget-loaded))
-        ;; doom-dashboard-widget-footer
 #+end_src
 
 *** Sections
@@ -292,7 +310,7 @@ Other small changes.
       'face 'doom-dashboard-loaded)
      "\n")))
 
-(setq doom-modeline-height 28)
+(setq doom-modeline-height 0) ;; min height
 (setq doom-modeline-buffer-modification-icon nil)
 #+end_src
 
@@ -305,7 +323,8 @@ Set theme and customize faces on some themes that I use.
 #+end_src
 
 #+begin_src emacs-lisp :eval no
-(setq doom-theme 'darktooth)
+;; (setq doom-theme 'darktooth)
+(setq doom-theme 'modus-vivendi)
 #+end_src
 
 ** Darktooth Customizations
@@ -356,6 +375,46 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
   '(mode-line-highlight :foreground "#fffabc" :bold nil))
 #+end_src
 
+** Modus Vivendi Customizations
+
+#+begin_src emacs-lisp :results output
+(custom-theme-set-faces! 'modus-vivendi
+  ;; Use the buffer background for the left margin
+  '(line-number
+    :inherit default
+    :foreground "#6E6E6E" "#767676"
+    :background nil)
+  '(line-number-current-line
+    :inherit default
+    :foreground "#A8A8A8" "#9E9E9E"
+    :background nil
+    :weight bold)
+  '(hl-line :background "#202020" "#202020" :extend t) ; highlighted line colour
+  
+  ;; org mode blocks
+  '(org-block            :background "#0D0D0D" "#0d0d0d" :extend t)
+  '(org-block-begin-line :inherit org-block :foreground "#6E6E6E")
+  '(org-block-end-line   :inherit org-block :foreground "#6E6E6E")
+  '(org-indent :inherit (org-hide))
+
+  ;; mode line no outline
+  '(mode-line
+    :background "#3C3C3C" :foreground "#DADADA"
+    :box nil :overline nil :underline nil)
+  '(mode-line-inactive :background "#3C3C3C" :foreground "#8A8A8A"
+    :box nil :overline nil :underline nil)
+  '(mode-line-highlight :foreground "#ffffff" :background "#45605e" :box nil)
+
+  ;; other
+  '(fringe :background unspecified)
+  '(region :background "#2E364A" "#2E364A" :extend t)
+  '(aw-leading-char-face
+    :inherit bold
+    :foreground "#FF5555"   ;; pure red: "#FF0000", darker: "#CC3333"
+    :background unspecified
+    :height 1.0))
+#+end_src
+
 * Configure Packages
 ** benchmark-init
 
@@ -383,18 +442,31 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
   (setq dired-free-space nil))
 #+end_src
 
+** Dirvish
+
+#+begin_src emacs-lisp :tangle no :eval no
+(use-package! dirvish
+  :defer t
+  :init
+  (map! "C-x C-j" #'dirvish)
+  :config
+  (setq dirvish-default-layout '(0 0.4 1))
+  (setq dirvish-attributes '(vc-state nerd-icons file-time file-size))
+  (setq dirvish-time-format-string "%b %e %H:%M"))
+#+end_src
+
 ** Tree Sitter
 
 #+begin_src emacs-lisp :tangle yes :eval no
-(use-package! tree-sitter
-  :hook
-  ((prog-mode . global-tree-sitter-mode)
-   (tree-sitter-after-on . tree-sitter-hl-mode)))
+;; (use-package! tree-sitter
+;;   :hook
+;;   ((prog-mode . global-tree-sitter-mode)
+;;    (tree-sitter-after-on . tree-sitter-hl-mode)))
 
-(map!
- :after tree-sitter
- :leader
- :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
+;; (map!
+;;  :after tree-sitter
+;;  :leader
+;;  :desc "Tree Sitter Highlight" :g "t h" #'tree-sitter-hl-mode)
 #+end_src
 
 ** Treemacs
@@ -436,7 +508,7 @@ Gptel is a tool to interact with large language models in emacs.
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-default-mode 'org-mode)
-  (setq gptel-model 'o3))
+  (setq gptel-model 'gpt-5.1))
 
 ;; (setq gptel-model "llama3:latest"
 ;;         gptel-backend (gptel-make-ollama "Ollama"
@@ -660,26 +732,6 @@ White Space butler
   (setq mu4e-modeline-show-global nil))
 #+end_src
 
-** Indent Bars
-
-[[https://github.com/jdtsmith/indent-bars][Indent Bars]]. Not using this one for now.
-
-#+begin_src emacs-lisp :tangle no
-(package! indent-bars
-  :recipe (:host github :repo "jdtsmith/indent-bars"))
-#+end_src
-
-#+begin_src emacs-lisp :tangle no
-(use-package! indent-bars
-  :hook ((prog-mode . indent-bars-mode))
-  :custom
-  (indent-bars-treesit-support t)
-  (indent-bars-treesit-ignore-blank-lines-types '("module"))
-  (indent-bars-width-frac 0.1)
-  (indent-bars-pad-frac 0.5)
-  (indent-bars-display-on-blank-lines t))
-#+end_src
-
 ** Avy
 
 Go to any where on screen within your buffer.
@@ -704,7 +756,8 @@ Childframe package for eldoc.
 (use-package! eldoc-box
   :config
    (custom-set-faces!
-    '(eldoc-box-border :background "#3f3f3f")))
+    '(eldoc-box-border :background "#3f3f3f"))
+   (add-hook 'eglot-managed-mode-hook #'eldoc-box-hover-mode t))
 
 (map! :after (eldoc eldoc-box)
       :desc "Eldoc Help at point" :g "C-M-y" #'eldoc-box-help-at-point)
@@ -797,22 +850,19 @@ If your token expires run =M-x slack-refresh-token=
 
 #+begin_src emacs-lisp :tangle yes
 (use-package! slack
-  :commands (slack-start slack-stop)
+  :commands (slack-start slack-stop slack-select-rooms)
   :init
-  (map! :prefix ("C-z" . "Slack")
-        :desc "Start slack" "S" #'slack-start
-        :desc "Open a chat"  "c" #'slack-select-rooms
-        :desc "Select unread rooms"  "u" #'slack-select-unread-rooms
-        :desc "Display a user's profile"  "U" #'slack-user-select
-        :desc "Search all channels"  "s" #'slack-search-from-messages
-        :desc "Jump to app"  "j" #'slack-jump-to-app
-        :desc "Edit message"  "e" #'slack-message-edit
-        :desc "Delete message"  "k" #'slack-message-delete
-        :desc "Reply in thread"  "t" #'slack-thread-show-or-create
-        :desc "Refresh"  "g" #'slack-message-redisplay
-        :desc "Refresh Quick"  "G" #'slack-conversations-list-update-quick
-        :desc "Quit slack"  "K" #'slack-stop)
+  (map! :leader :desc "Open slack rooms" "o s" #'slack-select-rooms)
+
   :config
+  ;; first launch setup
+  (defun +slack--ensure-connected ()
+    (unless (cl-loop for team being the hash-values of slack-teams-by-token
+                     thereis (slack-team-connectedp team))
+      (slack-start)))
+  (advice-add #'slack-select-rooms :before #'+slack--ensure-connected)
+
+  ;; slack connections
   (let* ((chan-secret (auth-source-pick-first-password
                        :host "slack"
                        :user "channels"))
@@ -825,7 +875,23 @@ If your token expires run =M-x slack-refresh-token=
               :host "slack" :user "cookie")
      :subscribed-channels my/slack-channels
      :full-and-display-names t))
+
+  ;; other
   (setq slack-prefer-current-team t)
+  (map! :prefix ("C-z" . "Slack")
+        :desc "Start slack" "S" #'slack-start
+        :desc "Open a chat"  "c" #'slack-select-rooms
+        :desc "Select unread rooms"  "u" #'slack-select-unread-rooms
+        :desc "Display a user's profile"  "U" #'slack-user-select
+        :desc "Search all channels"  "s" #'slack-search-from-messages
+        :desc "Jump to app"  "j" #'slack-jump-to-app
+        :desc "Edit message"  "e" #'slack-message-edit
+        :desc "Delete message"  "k" #'slack-message-delete
+        :desc "Reply in thread"  "r" #'slack-thread-show-or-create
+        :desc "Refresh"  "g" #'slack-message-redisplay
+        :desc "Refresh Quick"  "G" #'slack-conversations-list-update-quick
+        :desc "Set read mark"  "m" #'slack-message-update-mark
+        :desc "Quit slack"  "K" #'slack-stop)
   (map! :map slack-mode-map
         "@"      #'slack-message-embed-mention
         "#"      #'slack-message-embed-channel)
@@ -844,6 +910,14 @@ If your token expires run =M-x slack-refresh-token=
   (setq alert-default-style 'notifier))
 #+end_src
 
+** Evil
+
+Evil mode customizations.
+
+#+begin_src emacs-lisp :results no :tangle yes
+(after! evil
+  (setq evil-want-minibuffer t))
+#+end_src
 
 * Programming
 
@@ -857,7 +931,9 @@ General LSP mode configurations.
 (use-package lsp-mode
   :defer t
   :config
-  (setq lsp-idle-delay 0.03))
+  (setq lsp-idle-delay 0.03)
+  (setq lsp-file-watch-threshold 10000)
+  (setq lsp-modeline-code-actions-segments nil))
 
 (after! lsp-ui-sideline
   (setq lsp-ui-sideline-diagnostic-max-line-length 300))
@@ -904,6 +980,21 @@ No longer using since added by doom lsp module.
           (cons "emacs-lsp-booster" orig-result))
       orig-result)))
 (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+#+end_src
+
+** eglot
+
+Emacs polyglot LSP
+
+#+begin_src emacs-lisp :results none :tangle no
+(after! eglot
+  (setq eglot-send-changes-idle-time 0.0)
+  (setq eldoc-idle-delay 0.0)
+  (setq! eglot-code-action-indications '()) ; disable actions
+  (setq eglot-ignored-server-capabilities '(:inlayHintProvider))
+  (custom-set-faces!
+    '(eglot-highlight-symbol-face
+      :inherit highlight)))
 #+end_src
 
 ** DAP Mode
@@ -1118,6 +1209,57 @@ Not using this for now, so leaving it untangled.
 #+begin_src emacs-lisp :tangle yes
 (after! lsp-haskell
   (setq lsp-haskell-formatting-provider "ormolu"))
+#+end_src
+
+** Swift
+
+#+begin_src emacs-lisp :tangle yes
+(when (modulep! +tree-sitter)
+  (set-tree-sitter! 'swift-mode 'swift-ts-mode
+    '((swift :url "https://github.com/alex-pinkus/tree-sitter-swift"))))
+
+;; ---------------------------------------------------------------------------
+;; Everything below makes swift-ts-mode get the same toys as swift-mode
+;; ---------------------------------------------------------------------------
+
+;; SourceKit-LSP / Eglot (or lsp-mode) ---------------------------------------
+(set-eglot-client! '(swift-mode swift-ts-mode) '("sourcekit-lsp"))
+(add-hook! '(swift-mode-local-vars-hook swift-ts-mode-local-vars-hook)
+           #'lsp! 'append)
+
+;; Company completion --------------------------------------------------------
+(when (modulep! :completion company)
+  (set-company-backend!
+    '(swift-mode swift-ts-mode)
+    '(company-sourcekit company-yasnippet)))
+
+;; Flycheck ------------------------------------------------------------------
+(when (and (modulep! :checkers syntax) (not (modulep! +lsp)))
+  (add-hook! '(swift-mode-hook swift-ts-mode-hook) #'flycheck-mode))
+
+;; Formatter -----------------------------------------------------------------
+(set-formatter! 'swiftformat '("swiftformat" "--output" "stdout")
+                :modes '(swift-mode swift-ts-mode))
+#+end_src
+
+** Nim
+
+#+begin_src emacs-lisp :tangle yes
+(after! nim-mode
+  (setq lsp-nim-langserver "nimlangserver")
+  (add-hook 'nim-mode-local-vars-hook #'lsp!))
+
+(after! apheleia
+  ;; Define a formatter that edits files in-place
+  (setf (alist-get 'nimpretty apheleia-formatters)
+        '("nimpretty"
+          "--indent:2"
+          "--maxLineLen:100"
+          inplace))
+
+  ;; Tell Apheleia to use nimpretty for nim-mode
+  (setf (alist-get 'nim-mode apheleia-mode-alist)
+        '(nimpretty)))
 #+end_src
 
 * Windows NT
