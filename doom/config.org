@@ -160,13 +160,8 @@ These are some misc keybinds that I use.
       user-mail-address "mail@joshuacarrasco.com")
 
 (setq-default delete-by-moving-to-trash t)
-
 (setq display-line-numbers-type t)
-
 (setq org-directory "~/org/")
-
-;; frame title
-(set-frame-name "emacs")
 
 ;; dont ask me
 (setq confirm-kill-emacs nil
@@ -179,35 +174,16 @@ These are some misc keybinds that I use.
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
-
 (setq read-process-output-max (* 1024 1024))
 
-(set-frame-font "Iosevka 18")
-
-;; (set-face-attribute 'default nil
-;;                     :family "Iosevka" :height 180)
-
-;; font installed from https://github.com/protesilaos/iosevka-comfy
-;; (set-face-attribute 'default nil
-;;                     :family "Iosevka Comfy Wide" :height 110)
-
-;; set initial size
-(when window-system
-  (set-frame-size (selected-frame) 180 50))
-
-(set-frame-parameter nil 'alpha-background 98)
-(add-to-list 'default-frame-alist '(alpha-background . 98))
-
-(add-hook! term-mode-hook (display-line-numbers-mode 0))
-(add-hook! vterm-mode-hook (display-line-numbers-mode 0))
-(add-hook! shell-mode-hook (display-line-numbers-mode 0))
-(add-hook! eshell-mode-hook (display-line-numbers-mode 0))
-
-(setq initial-frame-alist
-      '((top  . -1)
-        (left . 0)
-        (width . 220)
-        (height . 70)))
+(setq default-frame-alist
+      (append
+       '((top . -1) (left . 0)
+         (width . 220) (height . 70)
+         (alpha-background . 98)
+         (name . "emacs")
+         (font . "Iosevka-18"))
+       default-frame-alist))
 #+end_src
 
 ** Doom
@@ -310,15 +286,23 @@ Other small changes.
       'face 'doom-dashboard-loaded)
      "\n")))
 
-(setq doom-modeline-height 0) ;; min height
-(setq doom-modeline-buffer-modification-icon nil)
+(after! doom-modeline
+  (setq doom-modeline-height 0
+        doom-modeline-buffer-modification-icon nil
+        doom-modeline-modal nil
+        doom-modeline-icon nil
+        doom-modeline-check-simple-format t))
+
+(after! doom-ui
+  (setq frame-title-format '("%b")  
+        icon-title-format  frame-title-format))
 #+end_src
 
 * Theme
 
 Set theme and customize faces on some themes that I use.
 
-#+begin_src emacs-lisp :tangle packages.el
+#+begin_src emacs-lisp :tangle no
 (package! darktooth-theme)
 #+end_src
 
@@ -331,7 +315,7 @@ Set theme and customize faces on some themes that I use.
 
 The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is my favourite theme, but I had to make some customizations for a couple things.
 
-#+begin_src emacs-lisp :eval no
+#+begin_src emacs-lisp :eval no :tangle no
 (custom-theme-set-faces! 'darktooth
   ;; all colours come from darktooh theme unless specified
 
@@ -539,9 +523,7 @@ Corfu is an in buffer completion engine.
 
 #+begin_src emacs-lisp :tangle no
 (package! platformio-mode)
-#+end_#+begin_src 
-
-      #+end_src
+#+end_src
 
 #+begin_src emacs-lisp :results none :tangle no
 (use-package! platformio-mode
@@ -664,10 +646,20 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
  :desc "Open Web UI" :leader "n r w" #'org-roam-ui-open)
 #+end_src
 
-** Consult
+** Consult / Vertico
 
 #+begin_src emacs-lisp :results none
-(map! :g "C-x b" #'consult-buffer)
+(map! :g "C-x b" #'consult-buffer
+      
+      :when (modulep! :editor evil)
+      :after consult
+      :leader
+      :desc "Switch buffer" "b b" #'consult-buffer
+      
+      :when (modulep! :editor evil)
+      :after vertico
+      :leader
+      :desc "Switch workspace buffer" "b B" #'+vertico/switch-workspace-buffer)
 #+end_src
 
 ** God Mode
@@ -916,7 +908,10 @@ Evil mode customizations.
 
 #+begin_src emacs-lisp :results no :tangle yes
 (after! evil
-  (setq evil-want-minibuffer t))
+  (setq evil-want-minibuffer t)
+  (setq evil-insert-state-message nil
+        evil-visual-state-message nil
+        evil-replace-state-message nil))
 #+end_src
 
 * Programming
@@ -933,6 +928,7 @@ General LSP mode configurations.
   :config
   (setq lsp-idle-delay 0.03)
   (setq lsp-file-watch-threshold 10000)
+  (setq lsp-modeline-diagnostics-enable nil)
   (setq lsp-modeline-code-actions-segments nil))
 
 (after! lsp-ui-sideline

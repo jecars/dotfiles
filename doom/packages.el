@@ -1,5 +1,3 @@
-(package! darktooth-theme)
-
 (package! benchmark-init)
 
 (package! org-roam-ui)

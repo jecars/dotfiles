@@ -51,7 +51,7 @@
        snippets          ; my elves. They type so I don't have to
        ;; word-wrap         ; soft wrapping with language-aware indent
        (whitespace +trim)          ; a butler for your whitespace
-       
+
        :emacs
        (dired +icons)             ; making dired pretty [functional]
        electric          ; smarter, keyword-based electric-indent
@@ -73,7 +73,7 @@
        ;;grammar           ; tasing grammar mistake every you make
 
        :tools
-       ;;ansible
+       ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
        ;;collab            ; buffers with friends
        debugger          ; FIXME stepping through code, to help you add bugs
@@ -100,6 +100,7 @@
        (tty +osc)               ; improve the terminal Emacs experience
 
        :lang
+       ;;ada               ; In strong typing we (blindly) trust
        ;;agda              ; types of types of types of types...
        ;;beancount         ; mind the GAAP
        (cc +lsp +tree-sitter)         ; C > C++ == 1
