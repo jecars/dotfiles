@@ -7,4 +7,5 @@ transient
 tutorial
 url
 doom/config.el
+doom/debug-adapters
 .DS_Store

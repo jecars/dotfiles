@@ -112,7 +112,7 @@ Don't ask me why I'm weird.
       (kill-region beg end))))
 #+end_src
 
-** Keybinds
+** COMMENT Keybinds
 
 These are some misc keybinds that I use.
 
@@ -120,10 +120,10 @@ These are some misc keybinds that I use.
 ;; custom keybinds
 (map! :leader
       (:prefix-map ("j" . "jecs")
-       :desc "Stare" "S" #'jecs/stare
-       :desc "Listening" "l" #'jecs/listening
-       :desc "Open Phone" "p" #'scrcpy-open
-       :desc "Toggle Major Mode" "t" #'jecs/toggle-major-mode))
+                   :desc "Stare" "S" #'jecs/stare
+                   :desc "Listening" "l" #'jecs/listening
+                   :desc "Open Phone" "p" #'scrcpy-open
+                   :desc "Toggle Major Mode" "t" #'jecs/toggle-major-mode))
 
 ;; global keybinds
 (map! :g "C-x L" #'count-lines-page
@@ -143,6 +143,7 @@ These are some misc keybinds that I use.
       :desc "New Emacs Instance" "o e" #'restart-emacs-start-new-emacs
       :desc "Open Calculator"    "o c" #'calc
       :desc "Open Calendar"      "o k" #'calendar
+      :desc "Open Scratch"       "o x" #'scratch-buffer
 
       ;; terminals
       :desc "Open large vterm (here)" "o t" #'+vterm/here
@@ -184,6 +185,8 @@ These are some misc keybinds that I use.
          (name . "emacs")
          (font . "Iosevka-18"))
        default-frame-alist))
+
+(add-to-list 'load-path (expand-file-name "lisp" doom-user-dir))
 #+end_src
 
 ** Doom
@@ -286,16 +289,18 @@ Other small changes.
       'face 'doom-dashboard-loaded)
      "\n")))
 
-(after! doom-modeline
-  (setq doom-modeline-height 0
-        doom-modeline-buffer-modification-icon nil
-        doom-modeline-modal nil
-        doom-modeline-icon nil
-        doom-modeline-check-simple-format t))
+;; TODO: fix this
+;; (after! doom-modeline
+;;   (setq doom-modeline-height 0
+;;         doom-modeline-buffer-modification-icon nil
+;;         doom-modeline-modal nil
+;;         doom-modeline-icon nil
+;;         doom-modeline-check-simple-format t))
 
-(after! doom-ui
-  (setq frame-title-format '("%b")  
-        icon-title-format  frame-title-format))
+(unless (display-graphic-p)
+  (after! doom-ui
+    (setq frame-title-format '("%b")
+          icon-title-format frame-title-format)))
 #+end_src
 
 * Theme
@@ -507,14 +512,15 @@ Corfu is an in buffer completion engine.
 
 #+begin_src emacs-lisp :tangle yes
 (after! corfu
-  (unless (display-graphic-p)
-    (corfu-terminal-mode +1))
-  (setq corfu-auto-prefix 2) 
-  (setq corfu-auto-delay 0.1) ;; default 0.5
-  ;; (setq corfu-popupinfo-delay '(0.3 . 0.3)) ;; default 0.5 . 0.1
+  ;; (unless (display-graphic-p)
+  ;;   (corfu-terminal-mode +1))
   (map! :map corfu-map
         "TAB" #'corfu-insert
         "<tab>" #'corfu-insert))
+
+(after! corfu-auto
+  (setq corfu-auto-delay 0.08
+        corfu-auto-prefix 2))
 #+end_src
 
 ** PlatformIO
@@ -908,10 +914,16 @@ Evil mode customizations.
 
 #+begin_src emacs-lisp :results no :tangle yes
 (after! evil
-  (setq evil-want-minibuffer t)
   (setq evil-insert-state-message nil
         evil-visual-state-message nil
         evil-replace-state-message nil))
+#+end_src
+
+** vterm
+
+#+begin_src emacs-lisp :results no :tangle yes
+(after! vterm
+  (setq vterm-timer-delay nil))
 #+end_src
 
 * Programming
@@ -993,12 +1005,13 @@ Emacs polyglot LSP
       :inherit highlight)))
 #+end_src
 
-** DAP Mode
+** debug dape/dap
 
 #+begin_src emacs-lisp :results none
 (with-eval-after-load 'dap-mode
   (setq dap-default-terminal-kind "integrated") ;; Make sure that terminal programs open a term for I/O in an Emacs buffer
   (dap-auto-configure-mode +1))
+
 #+end_src
 
 ** Python
@@ -1258,6 +1271,30 @@ Not using this for now, so leaving it untangled.
         '(nimpretty)))
 #+end_src
 
+** AWS CLI
+
+Configurations & keybinds for interacting with AWS CLI.
+
+#+begin_src elisp :tangle yes
+(autoload 'aws-ssm-start-session "aws-ssm"
+  "Start an AWS SSM session from authinfo." t)
+
+(map! :leader
+      (:prefix-map ("j" . "jecs")
+       (:prefix-map ("a" . "aws")
+        :desc "SSM Start" "s" #'aws-ssm-start-session)))
+#+end_src
+
+** Lua
+
+#+begin_src elisp :tangle yes
+;; (after! lsp-mode
+;;   ;; Force lsp-mode to use the brew-installed lua-language-server
+;;   (setq lsp-clients-lua-language-server-bin
+;;         (or (executable-find "lua-language-server")
+;;             "/opt/homebrew/bin/lua-language-server")))
+#+end_src
+
 * Windows NT
 
 Some configuration for when I have to use windows.
@@ -1291,8 +1328,7 @@ Some configuration for when I have to use windows.
     "Open Raycast via AppleScript"
     (interactive)
     (shell-command "open /Applications/Raycast.app"))
-  (map! :desc "Open Raycast" :g "C-M-x" #'jecs/open-raycast)
-  (map! :leader :desc "Open X-Widget" :g "o x" #'xwidget-webkit-browse-url))
+  (map! :desc "Open Raycast" :g "C-M-x" #'jecs/open-raycast))
 #+end_src
 
 * Other Packages
