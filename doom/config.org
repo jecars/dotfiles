@@ -102,6 +102,7 @@ Don't ask me why I'm weird.
 
 *** jecs/sp-kill-entire-sexp
 
+
 #+begin_src emacs-lisp :results none
 (defun jecs/sp-kill-sexp-region ()
   "Kill the text between sp-beginning-of-sexp and sp-end-of-sexp."
@@ -112,7 +113,24 @@ Don't ask me why I'm weird.
       (kill-region beg end))))
 #+end_src
 
-** COMMENT Keybinds
+*** jecs/new-emacs-instance
+
+#+begin_src emacs-lisp :results none
+(defun jecs/new-emacs-instance ()
+  "Start a new independent Emacs.app instance (macOS)."
+  (interactive)
+  (cond
+   ((eq system-type 'darwin)
+    ;; Launch Emacs.app independently
+    (start-process "emacs-new" nil "open" "-na" "Emacs"))
+   (t
+    (let ((exe (expand-file-name invocation-name invocation-directory)))
+      (start-process-shell-command
+       "emacs-new" nil (format "nohup %s >/dev/null 2>&1 &"
+                               (shell-quote-argument exe)))))))
+#+end_src
+
+** Keybinds
 
 These are some misc keybinds that I use.
 
@@ -140,7 +158,7 @@ These are some misc keybinds that I use.
 
 (map! :leader
       ;; misc
-      :desc "New Emacs Instance" "o e" #'restart-emacs-start-new-emacs
+      :desc "New Emacs Instance" "o e" #'jecs/new-emacs-instance
       :desc "Open Calculator"    "o c" #'calc
       :desc "Open Calendar"      "o k" #'calendar
       :desc "Open Scratch"       "o x" #'scratch-buffer
@@ -497,7 +515,7 @@ Gptel is a tool to interact with large language models in emacs.
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-default-mode 'org-mode)
-  (setq gptel-model 'gpt-5.1))
+  (setq gptel-model 'gpt-5.2))
 
 ;; (setq gptel-model "llama3:latest"
 ;;         gptel-backend (gptel-make-ollama "Ollama"

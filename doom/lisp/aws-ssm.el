@@ -120,8 +120,6 @@ Expects minified JSON object (no spaces) in the password/secret."
          (region (plist-get cfg :region))
          (parameters (plist-get cfg :parameters))
          (bufname (format "%s%s*" aws-ssm-buffer-prefix name))
-         (buf (get-buffer-create bufname))
-         ;; Build argv to avoid shell quoting issues.
          (argv (list "aws" "ssm" "start-session"
                      "--target" target
                      "--document-name" "AWS-StartPortForwardingSessionToRemoteHost"
@@ -136,28 +134,47 @@ Expects minified JSON object (no spaces) in the password/secret."
       (unless (cdr pair)
         (user-error "Missing %S in config %S" (car pair) name)))
 
-    ;; Keep 1 process per buffer (restarting same NAME replaces the old proc).
-    (when-let ((old (get-buffer-process buf)))
-      (when (process-live-p old)
-        (ignore-errors (kill-process old))))
+    (let* ((buf (get-buffer-create bufname))
+           ;; If the buffer is already visible, reuse that exact window.
+           (win (get-buffer-window buf t)))
 
-    (with-current-buffer buf
-      (erase-buffer)
-      (comint-mode)
-      (let ((cmd (mapconcat #'shell-quote-argument argv " ")))
-        (insert "$ " cmd "\n\n"))
-      (setq-local buffer-read-only t)
-      (read-only-mode 1)
-      (setq-local truncate-lines t)
-      (when (featurep 'evil)
-        (evil-normal-state))
+      ;; Restart inside the existing buffer.
+      (with-current-buffer buf
+        ;; Kill any existing process first.
+        (when-let ((old (get-buffer-process buf)))
+          (when (process-live-p old)
+            (ignore-errors (kill-process old))))
 
-      (let ((proc (apply #'start-process (format "aws-ssm-%s" name) buf argv)))
-        (set-process-query-on-exit-flag proc nil))
+        ;; Reset the buffer contents and mode state.
+        (let ((inhibit-read-only t))
+          (erase-buffer))
+        (unless (derived-mode-p 'comint-mode)
+          (comint-mode))
 
-      (add-hook 'kill-buffer-hook #'aws-ssm--kill-process-on-buffer-kill nil t))
+        ;; Show the command we ran (debug friendly)
+        (let ((inhibit-read-only t)
+              (cmd (mapconcat #'shell-quote-argument argv " ")))
+          (insert "$ " cmd "\n\n"))
 
-    (pop-to-buffer buf)))
+        (setq-local buffer-read-only t)
+        (read-only-mode 1)
+        (setq-local truncate-lines t)
+
+        (when (featurep 'evil)
+          (evil-normal-state))
+
+        ;; Start the new aws process.
+        (let ((proc (apply #'start-process (format "aws-ssm-%s" name) buf argv)))
+          (set-process-query-on-exit-flag proc nil))
+
+        ;; Only add the hook once per buffer.
+        (add-hook 'kill-buffer-hook #'aws-ssm--kill-process-on-buffer-kill nil t))
+
+      ;; Display without rearranging layout.
+      (if (window-live-p win)
+          (select-window win)
+        (pop-to-buffer buf)))))
+
 
 ;;;###autoload
 (defun aws-ssm-start-session ()
