@@ -115,7 +115,7 @@ These are some misc keybinds that I use.
 ;; custom keybinds
 (map! :leader
       (:prefix-map ("j" . "jecs")
-                   :desc "Stare" "S" #'jecs/stare
+                   :desc "Stare" "s" #'jecs/stare
                    :desc "Listening" "l" #'jecs/listening
                    :desc "Open Phone" "p" #'scrcpy-open
                    :desc "Toggle Major Mode" "t" #'jecs/toggle-major-mode))
@@ -167,27 +167,62 @@ These are some misc keybinds that I use.
 (setq tab-width 2)
 (setq show-paren-delay 0)
 (set-fringe-mode 0)
+(add-to-list 'load-path (expand-file-name "lisp" doom-user-dir))
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 (setq read-process-output-max (* 1024 1024))
 
+(defvar jecs/default-frame-cols 220)
+(defvar jecs/default-frame-rows 70)
+
+(defvar jecs/small-display-margin-left 0)
+(defvar jecs/small-display-margin-right 5)
+(defvar jecs/small-display-margin-top 0)
+(defvar jecs/small-display-margin-bottom 0)
+
+(defun jecs/apply-frame-size-smart (&optional frame)
+  (let* ((frame (or frame (selected-frame)))
+         (attrs (frame-monitor-attributes frame))
+         (workarea (or (alist-get 'workarea attrs)
+                       (alist-get 'geometry attrs)))
+         (wa-left   (nth 0 workarea))
+         (wa-top    (nth 1 workarea))
+         (wa-width  (nth 2 workarea))
+         (wa-height (nth 3 workarea))
+         (want-width  (* jecs/default-frame-cols (frame-char-width frame)))
+         (want-height (* jecs/default-frame-rows (frame-char-height frame))))
+    (if (or (> want-width wa-width)
+            (> want-height wa-height))
+        (progn
+          (set-frame-position
+           frame
+           (+ wa-left jecs/small-display-margin-left)
+           (+ wa-top jecs/small-display-margin-top))
+          (set-frame-size
+           frame
+           (- wa-width
+              jecs/small-display-margin-left
+              jecs/small-display-margin-right)
+           (- wa-height
+              jecs/small-display-margin-top
+              jecs/small-display-margin-bottom)
+           t))
+      (progn
+        (set-frame-position frame 0 0)
+        (set-frame-size frame
+                        jecs/default-frame-cols
+                        jecs/default-frame-rows)))))
+
 (setq default-frame-alist
       (append
-       '((top . -1) (left . 0)
-         (width . 220) (height . 70)
-         (alpha-background . 98)
+       '((alpha-background . 98)
          (name . "emacs")
          (font . "Iosevka-18"))
        default-frame-alist))
 
-(add-to-list 'load-path (expand-file-name "lisp" doom-user-dir))
-
-;; TODO fix
-;; (unless (display-graphic-p)
-;;   (after! doom-ui
-;;     (setq frame-title-format '("%b")
-;;           icon-title-format frame-title-format)))
+(add-hook 'window-setup-hook #'jecs/apply-frame-size-smart)
+(add-hook 'after-make-frame-functions #'jecs/apply-frame-size-smart)
 #+end_src
 
 ** Dashboard
@@ -206,22 +241,26 @@ These are some misc keybinds that I use.
 
 #+begin_src emacs-lisp :tangle yes
 (setq +dashboard-menu-sections
-      (cl-subseq +dashboard-menu-sections 0 2))
+      (cl-subseq +dashboard-menu-sections 0 2)
+      +dashboard-banner-vertical-padding '(0 . 0)
+      +dashboard-functions
+      '(jecs/dashboard-widget-maybe-banner
+        +dashboard-widget-shortmenu
+        +dashboard-widget-loaded))
 
-(setq +dashboard-banner-vertical-padding '(0 . 0))
+(defun jecs/dashboard-random-banner ()
+  (when jecs/banners
+    (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
+           (width (apply #'max (mapcar #'length banner))))
+      (propertize
+       (mapconcat
+        (lambda (line)
+          (concat line (make-string (max 0 (- width (length line))) ?\s)))
+        banner
+        "\n")
+       'face '+dashboard-banner))))
 
-(setq +dashboard-ascii-banner-fn
-      (lambda ()
-        (when jecs/banners
-          (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
-                 (longest-line (apply #'max (mapcar #'length banner))))
-            (propertize
-             (mapconcat
-              (lambda (line)
-                (concat line (make-string (max 0 (- longest-line (length line))) ?\s)))
-              banner
-              "\n")
-             'face '+dashboard-banner)))))
+(setq +dashboard-ascii-banner-fn #'jecs/dashboard-random-banner)
 
 (defun jecs/dashboard-widget-maybe-banner ()
   (when (and (>= (frame-width) 91)
@@ -243,30 +282,33 @@ If RETURN-P, return the message as a string instead of displaying it."
      (propertize (doom-display-benchmark-h 'return)
                  'face '+dashboard-loaded))))
 
-(setq +dashboard-functions
-      '(jecs/dashboard-widget-maybe-banner
-        +dashboard-widget-shortmenu
-        +dashboard-widget-loaded))
-
-(defun jecs/dashboard-buffer-setup-h ()
-  ;; actually kill the mode line
-  (setq-local mode-line-format nil)
-  ;; optional: also change mode name if mode line ever reappears
-  (setq-local mode-name "")
-  ;; avoid the highlight stripe
-  (setq-local hl-line-mode nil)
-  (when (fboundp 'hide-mode-line-mode)
-    (hide-mode-line-mode 1))
-  (force-mode-line-update))
-
-(defun jecs/dashboard-hide-modeline-h ()
+(defun jecs/dashboard-apply-visuals-h ()
   (when (+dashboard-buffer-p (current-buffer))
+    ;; kill modeline/headerline
     (setq-local mode-line-format nil)
+    (setq-local header-line-format nil)
+    (setq-local mode-name "")
+
+    ;; kill visible cursor
+    (setq-local cursor-type nil)
+
+    ;; kill current-line highlight
+    (when (bound-and-true-p hl-line-mode)
+      (hl-line-mode -1))
+
+    ;; keep point off buttons when possible
+    (unless (bobp)
+      (goto-char (point-min)))
+
     (force-mode-line-update)))
 
-(add-hook 'doom-switch-buffer-hook #'jecs/dashboard-hide-modeline-h) ; inhibit modeline on initial load
-(add-hook 'window-configuration-change-hook #'jecs/dashboard-hide-modeline-h) ; inhibit modeline on dashboard mode trigger
+(defun jecs/dashboard-buffer-setup-h ()
+  (jecs/dashboard-apply-visuals-h))
+
 (add-hook '+dashboard-mode-hook #'jecs/dashboard-buffer-setup-h)
+(add-hook 'doom-switch-buffer-hook #'jecs/dashboard-apply-visuals-h) ; inhibit modeline on initial load
+(add-hook 'window-configuration-change-hook #'jecs/dashboard-apply-visuals-h) ; inhibit modeline on dashboard mode trigger
+(add-hook 'post-command-hook #'jecs/dashboard-apply-visuals-h)
 #+end_src
 
 
