@@ -22,28 +22,6 @@ cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
 ** Functions
 These are some custom utility functions that I've created because I find use for them.
 
-*** jecs/toggle-quote-lines
-
-This function wraps a selected region with double quote ="= symbols.
-
-#+begin_src emacs-lisp :results none
-(defun jecs/toggle-quote-lines (beg end)
-  "Toggle wrapping all items in region with double quotes."
-  (interactive (list (mark) (point)))
-  (unless (region-active-p)
-    (user-error "No region to wrap"))
-  (let ((deactivate-mark nil)
-        (replacement (string-join
-                      (mapcar (lambda (item)
-                                (if (string-match-p "^\".*\"$" item)
-                                    (string-trim item "\"" "\"")
-                                  (format "\"%s\"" item)))
-                              (split-string (buffer-substring beg end) "\n"))
-                      "\n")))
-    (delete-region beg end)
-    (insert replacement)))
-#+end_src
-
 *** Toggle Mode
 
 This function toggles the current major mode by switching to fundamental mode then back to
@@ -101,7 +79,6 @@ Don't ask me why I'm weird.
 #+end_src
 
 *** jecs/sp-kill-entire-sexp
-
 
 #+begin_src emacs-lisp :results none
 (defun jecs/sp-kill-sexp-region ()
@@ -205,15 +182,15 @@ These are some misc keybinds that I use.
        default-frame-alist))
 
 (add-to-list 'load-path (expand-file-name "lisp" doom-user-dir))
+
+;; TODO fix
+;; (unless (display-graphic-p)
+;;   (after! doom-ui
+;;     (setq frame-title-format '("%b")
+;;           icon-title-format frame-title-format)))
 #+end_src
 
-** Doom
-
-My doom dashboard configuration.
-
-*** Set banner
-
-A pool of ASCII arts that will be randomly chosen from for the dashboard.
+** Dashboard
 
 #+name: tangled/banners
 #+begin_src elisp :tangle no :results none
@@ -227,28 +204,30 @@ A pool of ASCII arts that will be randomly chosen from for the dashboard.
 (defvar jecs/banners banners)
 #+end_src
 
-Set doom dashboard by picking a random ascii.
+#+begin_src emacs-lisp :tangle yes
+(setq +dashboard-menu-sections
+      (cl-subseq +dashboard-menu-sections 0 2))
 
-#+begin_src emacs-lisp :results none 
-(setq +doom-dashboard-ascii-banner-fn
+(setq +dashboard-banner-vertical-padding '(0 . 0))
+
+(setq +dashboard-ascii-banner-fn
       (lambda ()
-        (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
-               (longest-line (apply #'max (mapcar #'length banner))))
-          (put-text-property
-           (point)
-           (dolist (line banner (point))
-             (insert (+doom-dashboard--center
-                      +doom-dashboard--width
-                      (concat line (make-string (max 0 (- longest-line (length line))) 32)))
-                     "\n"))
-           'face 'doom-dashboard-banner))))
-#+end_src
+        (when jecs/banners
+          (let* ((banner (nth (random (length jecs/banners)) jecs/banners))
+                 (longest-line (apply #'max (mapcar #'length banner))))
+            (propertize
+             (mapconcat
+              (lambda (line)
+                (concat line (make-string (max 0 (- longest-line (length line))) ?\s)))
+              banner
+              "\n")
+             'face '+dashboard-banner)))))
 
-*** Benchmark
+(defun jecs/dashboard-widget-maybe-banner ()
+  (when (and (>= (frame-width) 91)
+             (>= (frame-height) 41))
+    (+dashboard-widget-banner)))
 
-Override default =doom-display-benchmark-h= function with different formatting.
-
-#+begin_src emacs-lisp :results none
 (defun doom-display-benchmark-h (&optional return-p)
   "Display a benchmark including number of packages and modules loaded.
 
@@ -257,69 +236,39 @@ If RETURN-P, return the message as a string instead of displaying it."
            "Loaded %d packages in %.03fs"
            (- (length load-path) (length (get 'load-path 'initial-value)))
            doom-init-time))
-#+end_src
 
-*** Dashboard functions
-
-Remove the footer widget from the dashboard.
-
-#+begin_src emacs-lisp :results none
-(defun jecs/doom-dashboard-maybe-banner ()
-  "Show banner only when frame is large enough."
-  (when (and (>= (frame-width) 91)
-             (>= (frame-height) 41))
-    (doom-dashboard-widget-banner)))
-
-(setq +doom-dashboard-functions
-      '(jecs/doom-dashboard-maybe-banner
-        doom-dashboard-widget-shortmenu
-        doom-dashboard-widget-loaded))
-#+end_src
-
-*** Sections
-
-Remove some sections from the dashboard.
-
-#+begin_src emacs-lisp :results none
-(setq +doom-dashboard-menu-sections (cl-subseq +doom-dashboard-menu-sections 0 2))
-#+end_src
-
-*** Other
-
-Other small changes.
-
-#+begin_src emacs-lisp :results none
-;; disable hl line on dashboard
-(add-hook! '+doom-dashboard-functions
-  (setq hl-line-mode nil)
-  (hide-mode-line-mode 1))
-
-;; override function to remove newlines at start
-(defun doom-dashboard-widget-loaded ()
-  "Overrides doom dashboard loaded function."
+(defun +dashboard-widget-loaded ()
   (when doom-init-time
-    (insert
-     ""
-     (propertize
-      (+doom-dashboard--center
-       +doom-dashboard--width
-       (doom-display-benchmark-h 'return))
-      'face 'doom-dashboard-loaded)
-     "\n")))
+    (+dashboard-insert-centered
+     (propertize (doom-display-benchmark-h 'return)
+                 'face '+dashboard-loaded))))
 
-;; TODO: fix this
-;; (after! doom-modeline
-;;   (setq doom-modeline-height 0
-;;         doom-modeline-buffer-modification-icon nil
-;;         doom-modeline-modal nil
-;;         doom-modeline-icon nil
-;;         doom-modeline-check-simple-format t))
+(setq +dashboard-functions
+      '(jecs/dashboard-widget-maybe-banner
+        +dashboard-widget-shortmenu
+        +dashboard-widget-loaded))
 
-(unless (display-graphic-p)
-  (after! doom-ui
-    (setq frame-title-format '("%b")
-          icon-title-format frame-title-format)))
+(defun jecs/dashboard-buffer-setup-h ()
+  ;; actually kill the mode line
+  (setq-local mode-line-format nil)
+  ;; optional: also change mode name if mode line ever reappears
+  (setq-local mode-name "")
+  ;; avoid the highlight stripe
+  (setq-local hl-line-mode nil)
+  (when (fboundp 'hide-mode-line-mode)
+    (hide-mode-line-mode 1))
+  (force-mode-line-update))
+
+(defun jecs/dashboard-hide-modeline-h ()
+  (when (+dashboard-buffer-p (current-buffer))
+    (setq-local mode-line-format nil)
+    (force-mode-line-update)))
+
+(add-hook 'doom-switch-buffer-hook #'jecs/dashboard-hide-modeline-h) ; inhibit modeline on initial load
+(add-hook 'window-configuration-change-hook #'jecs/dashboard-hide-modeline-h) ; inhibit modeline on dashboard mode trigger
+(add-hook '+dashboard-mode-hook #'jecs/dashboard-buffer-setup-h)
 #+end_src
+
 
 * Theme
 
@@ -831,7 +780,8 @@ If there is no region then call `rotate-text' normally."
   (add-to-list 'rotate-text-words '("before" "after"))
   (add-to-list 'rotate-text-words '("min" "max"))
   (add-to-list 'rotate-text-words '("win" "lose"))
-  (add-to-list 'rotate-text-words '("high" "low")))
+  (add-to-list 'rotate-text-words '("high" "low"))
+  (add-to-list 'rotate-text-words '("first" "last")))
 #+end_src
 
 ** Verb
