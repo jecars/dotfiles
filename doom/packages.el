@@ -8,4 +8,6 @@
 
 (package! windresize)
 
+(package! expreg)
+
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum

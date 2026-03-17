@@ -297,7 +297,6 @@ If RETURN-P, return the message as a string instead of displaying it."
 (add-hook 'post-command-hook #'jecs/dashboard-apply-visuals-h)
 #+end_src
 
-
 * Theme
 
 Set theme and customize faces on some themes that I use.
@@ -424,6 +423,44 @@ Enable profiler when emacs is run with with src_bash{emacs --debug-init}
   :config
   (setq dired-listing-switches "-ahHl -v --group-directories-first -H")
   (setq dired-free-space nil))
+
+(defun jecs/dired-grep (needle)
+  "Recursively search for NEEDLE from the current Dired directory.
+Use grep over TRAMP, otherwise use ripgrep."
+  (interactive
+   (list
+    (read-string
+     (if (use-region-p)
+         (format "Search for (default %s): "
+                 (buffer-substring-no-properties
+                  (region-beginning) (region-end)))
+       "Search for: ")
+     nil nil
+     (when (use-region-p)
+       (buffer-substring-no-properties
+        (region-beginning) (region-end))))))
+  (unless (derived-mode-p 'dired-mode)
+    (user-error "Not in a Dired buffer"))
+  (let* ((dir default-directory)
+         (quoted (shell-quote-argument needle))
+         (cmd (if (file-remote-p dir)
+                  (format "find . -type f -exec grep -nH -- %s {} +"
+                          quoted)
+                (format "rg -n --hidden -g '!.git' %s ."
+                        quoted))))
+    (grep cmd)))
+
+(map! :map dired-mode-map
+      "/" #'jecs/dired-grep
+      :localleader
+      :desc "Search here" "s" #'jecs/dired-grep)
+
+; auto select new grep buffers
+(add-to-list 'display-buffer-alist
+             '("\\*grep\\*"
+               (display-buffer-pop-up-window)
+               (inhibit-same-window . nil)
+               (body-function . select-window)))
 #+end_src
 
 ** Dirvish
@@ -557,13 +594,13 @@ Corfu is an in buffer completion engine.
 
 Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
 
-#+begin_src emacs-lisp :results none :tangle no
-(after! tramp
-  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+#+begin_src emacs-lisp :results none :tangle yes
+(setq tramp-verbose 1)
+(defun jecs/disable-remote-vc-h ()
+  (when (file-remote-p default-directory)
+    (setq-local vc-handled-backends nil)))
 
-(setq tramp-verbose 10)
-(setq tramp-default-method "plink")
-(setq tramp-remote-path '("/mnt/c/Program Files/PuTTY"))
+(add-hook 'find-file-hook #'jecs/disable-remote-vc-h)
 #+end_src
 
 ** scrcpy
@@ -930,6 +967,20 @@ Evil mode customizations.
 
 #+begin_src emacs-lisp :results none :tangle yes
 (map! :leader :desc "Resize windows" "w r" #'windresize)
+#+end_src
+
+** expreg
+
+expand region but better?
+
+#+begin_src emacs-lisp :tangle packages.el
+(package! expreg)
+#+end_src
+
+#+begin_src emacs-lisp :results output
+(use-package! expreg
+  :bind (("C-=" . expreg-expand)
+         ("C--" . expreg-contract)))
 #+end_src
 
 * Programming
