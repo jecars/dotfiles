@@ -27,16 +27,13 @@ These are some custom utility functions that I've created because I find use for
 This function toggles the current major mode by switching to fundamental mode then back to
 whatever mode was previously active.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle yes :eval no
 (defun jecs/toggle-major-mode ()
   (interactive)
   (let ((old-major-mode major-mode))
     (fundamental-mode)
     (funcall old-major-mode)))
 #+end_src
-
-#+RESULTS:
-: jecs/toggle-major-mode
 
 *** jecs/stare
 
@@ -183,36 +180,25 @@ These are some misc keybinds that I use.
 
 (defun jecs/apply-frame-size-smart (&optional frame)
   (let* ((frame (or frame (selected-frame)))
-         (attrs (frame-monitor-attributes frame))
-         (workarea (or (alist-get 'workarea attrs)
-                       (alist-get 'geometry attrs)))
+         (workarea (frame-monitor-workarea frame))
          (wa-left   (nth 0 workarea))
          (wa-top    (nth 1 workarea))
          (wa-width  (nth 2 workarea))
-         (wa-height (nth 3 workarea))
-         (want-width  (* jecs/default-frame-cols (frame-char-width frame)))
-         (want-height (* jecs/default-frame-rows (frame-char-height frame))))
-    (if (or (> want-width wa-width)
-            (> want-height wa-height))
-        (progn
-          (set-frame-position
-           frame
-           (+ wa-left jecs/small-display-margin-left)
-           (+ wa-top jecs/small-display-margin-top))
-          (set-frame-size
-           frame
-           (- wa-width
-              jecs/small-display-margin-left
-              jecs/small-display-margin-right)
-           (- wa-height
-              jecs/small-display-margin-top
-              jecs/small-display-margin-bottom)
-           t))
-      (progn
-        (set-frame-position frame 0 0)
-        (set-frame-size frame
-                        jecs/default-frame-cols
-                        jecs/default-frame-rows)))))
+         (wa-height (nth 3 workarea)))
+    ;; First, try the normal/default size.
+    (set-frame-parameter frame 'fullscreen nil)
+    (set-frame-position frame wa-left wa-top)
+    (set-frame-size frame
+                    jecs/default-frame-cols
+                    jecs/default-frame-rows)
+
+    ;; Now measure the real frame size, not an estimate.
+    (let ((frame-width  (frame-outer-width frame))
+          (frame-height (frame-outer-height frame)))
+      (when (or (> frame-width wa-width)
+                (> frame-height wa-height))
+        ;; Doesn't fit: maximize it.
+        (set-frame-parameter frame 'fullscreen 'maximized)))))
 
 (setq default-frame-alist
       (append
@@ -936,6 +922,16 @@ Evil mode customizations.
   (setq vterm-timer-delay nil))
 #+end_src
 
+** windresize
+
+#+begin_src emacs-lisp :results none :tangle packages.el
+(package! windresize)
+#+end_src
+
+#+begin_src emacs-lisp :results none :tangle yes
+(map! :leader :desc "Resize windows" "w r" #'windresize)
+#+end_src
+
 * Programming
 
 Configurations for programming languages.
@@ -1029,7 +1025,38 @@ Emacs polyglot LSP
 #+begin_src emacs-lisp :results none
 (after! lsp-mode
   (setq lsp-pyright-multi-root nil))
+
+(defun jecs/pyvenv-activate-poetry-env ()
+  (interactive)
+  (require 'pyvenv)
+  (let* ((start-dir (cond
+                     ((buffer-file-name) (file-name-directory buffer-file-name))
+                     ((derived-mode-p 'dired-mode) (dired-current-directory))
+                     (t default-directory)))
+         (default-directory
+          (or (locate-dominating-file start-dir "pyproject.toml")
+              (user-error "Not inside a Poetry project")))
+         (venv (seq-find #'file-directory-p
+                         (split-string
+                          (string-trim (shell-command-to-string "poetry env info --path"))
+                          "\n" t)))
+         (changed-p
+          (not (equal (and pyvenv-virtual-env
+                           (file-truename pyvenv-virtual-env))
+                      (and venv
+                           (file-truename venv))))))
+
+    (unless venv
+      (user-error "Could not resolve Poetry virtualenv"))
+
+    (when changed-p
+      (pyvenv-activate venv)
+      (when (and (bound-and-true-p lsp-mode)
+                 (fboundp 'lsp-workspace-restart))
+        (dolist (workspace (lsp-workspaces))
+          (lsp-workspace-restart workspace))))))
 #+end_src
+** 
 
 ** WGSL
 
@@ -1348,3 +1375,4 @@ Additional packages that don't require any configurations.
 #+begin_src emacs-lisp :results none :tangle packages.el
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
 #+end_src
+

@@ -6,4 +6,6 @@
 
 (package! slack)
 
+(package! windresize)
+
 (package! lorem-ipsum) ;; fill paragraphs with lorem ipsum
