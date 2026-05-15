@@ -87,6 +87,16 @@ Don't ask me why I'm weird.
       (kill-region beg end))))
 #+end_src
 
+*** jecs/mark-surrounding-sexp
+
+#+begin_src emacs-lisp :results none
+(defun jecs/mark-surrounding-sexp ()
+  "Go to the start of the surrounding sexp and mark it."
+  (interactive)
+  (sp-backward-up-sexp)
+  (mark-sexp))
+#+end_src
+
 *** jecs/new-emacs-instance
 
 #+begin_src emacs-lisp :results none
@@ -102,6 +112,24 @@ Don't ask me why I'm weird.
       (start-process-shell-command
        "emacs-new" nil (format "nohup %s >/dev/null 2>&1 &"
                                (shell-quote-argument exe)))))))
+#+end_src
+
+*** jecs/newline-same-indent
+
+#+begin_src emacs-lisp :results output
+(defun jecs/newline-same-indent ()
+  (interactive)
+  (let ((col (save-excursion
+               (back-to-indentation)
+               (current-column))))
+    (newline)
+    (indent-to col)))
+
+(defmacro jecs/map-newline-same-indent! (keymap)
+  `(map! :map ,keymap
+         [return] #'jecs/newline-same-indent
+         "RET"    #'jecs/newline-same-indent
+         "C-m"    #'jecs/newline-same-indent))
 #+end_src
 
 ** Keybinds
@@ -123,7 +151,8 @@ These are some misc keybinds that I use.
       :g "C-x C-c" nil
       :g "s-k" #'kill-buffer-and-window
       :g "C-M-z" #'sp-backward-up-sexp
-      :g "C-M-S-k" #'jecs/sp-kill-sexp-region)
+      :g "C-M-S-k" #'jecs/sp-kill-sexp-region
+      :g "C-M-=" #'jecs/mark-surrounding-sexp)
 
 (if (display-graphic-p)
     (map! :g "C-z" nil))
@@ -139,7 +168,10 @@ These are some misc keybinds that I use.
 
       ;; terminals
       :desc "Open large vterm (here)" "o t" #'+vterm/here
-      :desc "Popup vterm"             "t t" #'+vterm/toggle)
+      :desc "Popup vterm"             "t t" #'+vterm/toggle
+
+      ;; quit
+      :desc "Quit Tramp Buffers" "q T" #'tramp-cleanup-all-buffers)
 #+end_src
 
 ** General
@@ -165,13 +197,14 @@ These are some misc keybinds that I use.
 (setq show-paren-delay 0)
 (set-fringe-mode 0)
 (add-to-list 'load-path (expand-file-name "lisp" doom-user-dir))
+(setq scroll-margin 5)
 
 ;; so cross program copy paste will add to kill ring
 (setq save-interprogram-paste-before-kill t)
 (setq read-process-output-max (* 1024 1024))
 
-(defvar jecs/default-frame-cols 220)
-(defvar jecs/default-frame-rows 70)
+(defvar jecs/default-frame-cols 170)
+(defvar jecs/default-frame-rows 50)
 
 (defvar jecs/small-display-margin-left 0)
 (defvar jecs/small-display-margin-right 5)
@@ -185,20 +218,22 @@ These are some misc keybinds that I use.
          (wa-top    (nth 1 workarea))
          (wa-width  (nth 2 workarea))
          (wa-height (nth 3 workarea)))
-    ;; First, try the normal/default size.
     (set-frame-parameter frame 'fullscreen nil)
-    (set-frame-position frame wa-left wa-top)
     (set-frame-size frame
                     jecs/default-frame-cols
                     jecs/default-frame-rows)
 
-    ;; Now measure the real frame size, not an estimate.
     (let ((frame-width  (frame-outer-width frame))
           (frame-height (frame-outer-height frame)))
-      (when (or (> frame-width wa-width)
-                (> frame-height wa-height))
-        ;; Doesn't fit: maximize it.
-        (set-frame-parameter frame 'fullscreen 'maximized)))))
+      (if (or (> frame-width wa-width)
+              (> frame-height wa-height))
+          (set-frame-parameter frame 'fullscreen 'maximized)
+        (set-frame-position
+         frame
+         (+ wa-left jecs/small-display-margin-left)
+         (+ wa-top
+            (- wa-height frame-height)
+            (- jecs/small-display-margin-bottom)))))))
 
 (setq default-frame-alist
       (append
@@ -207,8 +242,9 @@ These are some misc keybinds that I use.
          (font . "Iosevka-18"))
        default-frame-alist))
 
-(add-hook 'window-setup-hook #'jecs/apply-frame-size-smart)
-(add-hook 'after-make-frame-functions #'jecs/apply-frame-size-smart)
+(when (display-graphic-p)
+  (add-hook 'window-setup-hook #'jecs/apply-frame-size-smart)
+  (add-hook 'after-make-frame-functions #'jecs/apply-frame-size-smart))
 #+end_src
 
 ** Dashboard
@@ -296,6 +332,16 @@ If RETURN-P, return the message as a string instead of displaying it."
 (add-hook 'window-configuration-change-hook #'jecs/dashboard-apply-visuals-h) ; inhibit modeline on dashboard mode trigger
 (add-hook 'post-command-hook #'jecs/dashboard-apply-visuals-h)
 #+end_src
+
+** Modeline
+
+#+begin_src emacs-lisp :results output
+;; (after! doom-modeline
+;;   (setq ; doom-modeline-buffer-state-icon nil
+;;         doom-modeline-buffer-modification-icon nil))
+#+end_src
+
+#+RESULTS:
 
 * Theme
 
@@ -529,13 +575,19 @@ Gptel is a tool to interact with large language models in emacs.
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (setq gptel-default-mode 'org-mode)
-  (setq gptel-model 'gpt-5.2))
+  (setq gptel-model 'gpt-5.5))
 
-;; (setq gptel-model "llama3:latest"
-;;         gptel-backend (gptel-make-ollama "Ollama"
-;;                         :host "localhost:11434"
-;;                         :stream t
-;;                         :models '("llama3:latest")))
+(with-eval-after-load 'gptel-rewrite
+  (defun jecs/gptel-append-python-rewrite-indent-rules (directive)
+    "Append Python indentation rules to gptel's default rewrite directive."
+    (if (derived-mode-p 'python-mode 'python-ts-mode)
+        (concat
+         directive
+         "\n- Generated code should preserve indentation of provided code.\n")
+      directive))
+  (advice-add 'gptel--rewrite-directive-default
+              :filter-return
+              #'jecs/gptel-append-python-rewrite-indent-rules))
 #+end_src
 
 ** Corfu
@@ -596,11 +648,17 @@ Documentation at: https://coder.com/docs/v2/latest/ides/emacs-tramp
 
 #+begin_src emacs-lisp :results none :tangle yes
 (setq tramp-verbose 1)
-(defun jecs/disable-remote-vc-h ()
+
+(defun jecs/remote-buffer-optimize ()
   (when (file-remote-p default-directory)
     (setq-local vc-handled-backends nil)))
 
-(add-hook 'find-file-hook #'jecs/disable-remote-vc-h)
+(with-eval-after-load 'tramp
+  ;; Make /scp: use the `sftp` program for file transfers
+  (setq tramp-scp-transfer-method 'sftp))
+
+(add-hook 'dired-mode-hook #'jecs/remote-buffer-optimize)
+(add-hook 'find-file-hook #'jecs/remote-buffer-optimize)
 #+end_src
 
 ** scrcpy
@@ -615,6 +673,9 @@ scrcpy is a work in progress package that I'm working on to interact with the sc
 
 #+begin_src emacs-lisp :results none
 (add-hook 'org-mode-hook 'yas-minor-mode-on)
+(add-hook 'org-mode-hook
+          (lambda ()
+            (flycheck-mode -1)))
 #+end_src
 
 ** Org Hugo
@@ -727,9 +788,9 @@ A fancy UI for org roam. https://github.com/org-roam/org-roam-ui
 White Space butler
 
 #+begin_src emacs-lisp :tangle yes :results none
-(use-package! ws-butler
-  :config
-  (add-to-list 'ws-butler-global-exempt-modes 'text-mode))
+(with-eval-after-load 'ws-butler
+  (dolist (mode '(text-mode))
+    (add-to-list 'ws-butler-global-exempt-modes mode)))
 #+end_src
 
 ** mu4e
@@ -859,7 +920,7 @@ If there is no region then call `rotate-text' normally."
 
 #+begin_src emacs-lisp :tangle yes
 (after! verb
-  (setq! verb-trim-body-end "[ \t\n\r]+"))
+  (setopt verb-trim-body-end "[ \t\n\r]+"))
 
 (map! :after org
       :desc "Verb Prefix"
@@ -950,6 +1011,13 @@ Evil mode customizations.
   (setq evil-insert-state-message nil
         evil-visual-state-message nil
         evil-replace-state-message nil))
+
+(after! doom-modeline
+  (setq doom-modeline-modal nil))
+
+(after! vterm
+  (add-hook! 'vterm-mode-hook
+    (evil-local-mode -1)))
 #+end_src
 
 ** vterm
@@ -1055,7 +1123,7 @@ Emacs polyglot LSP
 (after! eglot
   (setq eglot-send-changes-idle-time 0.0)
   (setq eldoc-idle-delay 0.0)
-  (setq! eglot-code-action-indications '()) ; disable actions
+  (setopt eglot-code-action-indications '()) ; disable actions
   (setq eglot-ignored-server-capabilities '(:inlayHintProvider))
   (custom-set-faces!
     '(eglot-highlight-symbol-face
@@ -1107,7 +1175,6 @@ Emacs polyglot LSP
         (dolist (workspace (lsp-workspaces))
           (lsp-workspace-restart workspace))))))
 #+end_src
-** 
 
 ** WGSL
 
@@ -1171,6 +1238,13 @@ The shader language for WebGPU
 
 #+begin_src emacs-lisp :results none
 (setq c-basic-offset 4)
+(setq lsp-clients-clangd-executable "/opt/homebrew/opt/llvm/bin/clangd")
+(setq lsp-clients--clangd-default-executable "/opt/homebrew/opt/llvm/bin/clangd")
+(after! lsp-clangd
+  (setq lsp-clients-clangd-args
+        '("--query-driver=/opt/homebrew/opt/llvm/bin/clang++"
+          "--background-index"
+          "--clang-tidy")))
 
 (after! (tramp lsp-mode)
   (lsp-register-client ;; c/c++ remote LSP
@@ -1304,8 +1378,11 @@ Not using this for now, so leaving it untangled.
 ** Haskell
 
 #+begin_src emacs-lisp :tangle yes
-(after! lsp-haskell
-  (setq lsp-haskell-formatting-provider "ormolu"))
+(after! apheleia
+  (add-hook 'lsp-managed-mode-hook
+            (lambda ()
+              (when (eq major-mode 'haskell-ts-mode)
+                (+format-with-lsp-mode 1)))))
 #+end_src
 
 ** Swift
@@ -1314,10 +1391,6 @@ Not using this for now, so leaving it untangled.
 (when (modulep! +tree-sitter)
   (set-tree-sitter! 'swift-mode 'swift-ts-mode
     '((swift :url "https://github.com/alex-pinkus/tree-sitter-swift"))))
-
-;; ---------------------------------------------------------------------------
-;; Everything below makes swift-ts-mode get the same toys as swift-mode
-;; ---------------------------------------------------------------------------
 
 ;; SourceKit-LSP / Eglot (or lsp-mode) ---------------------------------------
 (set-eglot-client! '(swift-mode swift-ts-mode) '("sourcekit-lsp"))
@@ -1357,6 +1430,22 @@ Not using this for now, so leaving it untangled.
   ;; Tell Apheleia to use nimpretty for nim-mode
   (setf (alist-get 'nim-mode apheleia-mode-alist)
         '(nimpretty)))
+#+end_src
+
+** Odin
+
+#+begin_src emacs-lisp :tangle yes
+(with-eval-after-load 'ws-butler
+  (dolist (mode '(odin-mode odin-ts-mode))
+    (add-to-list 'ws-butler-global-exempt-modes mode)))
+
+(after! odin-mode
+  (set-formatter! 'odinfmt '("odinfmt" "-stdin") :modes '(odin-mode))
+  (jecs/map-newline-same-indent! odin-mode-map))
+
+(after! odin-ts-mode
+  (set-formatter! 'odinfmt '("odinfmt" "-stdin") :modes '(odin-ts-mode))
+  (jecs/map-newline-same-indent! odin-ts-mode-map))
 #+end_src
 
 ** AWS CLI
@@ -1407,7 +1496,6 @@ Some configuration for when I have to use windows.
 #+end_src
 
 * MacOS
-
 ** X Widgets
 
 #+begin_src emacs-lisp :tangle yes
