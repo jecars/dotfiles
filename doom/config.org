@@ -18,7 +18,7 @@ rm -r ~/Desktop/dotfiles/doom/*
 cp -r ~/.config/doom/* ~/Desktop/dotfiles/doom
 #+end_src
 
-* Custom
+* Core
 ** Functions
 These are some custom utility functions that I've created because I find use for them.
 
@@ -152,7 +152,8 @@ These are some misc keybinds that I use.
       :g "s-k" #'kill-buffer-and-window
       :g "C-M-z" #'sp-backward-up-sexp
       :g "C-M-S-k" #'jecs/sp-kill-sexp-region
-      :g "C-M-=" #'jecs/mark-surrounding-sexp)
+      :g "C-M-=" #'jecs/mark-surrounding-sexp
+      :g "C-x O" #'other-frame)
 
 (if (display-graphic-p)
     (map! :g "C-z" nil))
@@ -165,10 +166,6 @@ These are some misc keybinds that I use.
       :desc "Open Calculator"    "o c" #'calc
       :desc "Open Calendar"      "o k" #'calendar
       :desc "Open Scratch"       "o x" #'scratch-buffer
-
-      ;; terminals
-      :desc "Open large vterm (here)" "o t" #'+vterm/here
-      :desc "Popup vterm"             "t t" #'+vterm/toggle
 
       ;; quit
       :desc "Quit Tramp Buffers" "q T" #'tramp-cleanup-all-buffers)
@@ -444,7 +441,7 @@ The [[https://github.com/emacsfodder/emacs-theme-darktooth][darktooth theme]] is
     :height 1.0))
 #+end_src
 
-* Configure Packages
+* General
 ** benchmark-init
 
 A benchmark profiler for debugging long Emacs startup times.
@@ -1014,17 +1011,29 @@ Evil mode customizations.
 
 (after! doom-modeline
   (setq doom-modeline-modal nil))
-
-(after! vterm
-  (add-hook! 'vterm-mode-hook
-    (evil-local-mode -1)))
 #+end_src
 
 ** vterm
 
-#+begin_src emacs-lisp :results no :tangle yes
+#+begin_src emacs-lisp :results no :tangle no
 (after! vterm
   (setq vterm-timer-delay nil))
+
+(map! :leader
+      :desc "Open large vterm (here)" "o t" #'+vterm/here
+      :desc "Popup vterm"             "t t" #'+vterm/toggle)
+#+end_src
+
+** gh
+
+#+begin_src emacs-lisp :results no :tangle yes
+(map! :leader
+      :desc "Open large ghostel (here)" "o t" #'+ghostel/here
+      :desc "Popup ghostel"             "t t" #'+ghostel/toggle)
+
+(after! ghostel
+  (setq ghostel-timer-delay 0.0)
+  (setq ghostel-adaptive-fps nil))
 #+end_src
 
 ** windresize
@@ -1049,6 +1058,14 @@ expand region but better?
 (use-package! expreg
   :bind (("C-=" . expreg-expand)
          ("C--" . expreg-contract)))
+#+end_src
+
+** yassnippet
+
+#+begin_src emacs-lisp :results no :tangle yes
+(set-file-template! "compile_flags\\.txt$"
+  :trigger "__compile-flags"
+  :mode 'text-mode)
 #+end_src
 
 * Programming
@@ -1472,7 +1489,326 @@ Configurations & keybinds for interacting with AWS CLI.
 ;;             "/opt/homebrew/bin/lua-language-server")))
 #+end_src
 
-* Windows NT
+* Project Tasks
+
+Dynamic project-aware task discovery and execution.
+
+** Packages
+
+#+begin_src emacs-lisp :results none :tangle packages.el
+(package! consult-compile-multi) ; consult frontend
+(package! compile-multi-embark) ; embark actions
+(package! compile-multi-nerd-icons) ; target icons
+(package! projection-multi) ; project-aware dynamic targets
+#+end_src
+
+** Framework
+
+Base Projection and compile-multi integration.
+
+#+begin_src emacs-lisp :results none :tangle yes
+(use-package! projection
+  :defer t
+  :init
+  (add-hook 'compilation-mode-hook #'projection-customize-compilation-mode)
+  (setq compilation-buffer-name-function
+        #'projection-customize-compilation-buffer-name-function))
+
+(use-package! projection-multi
+  :commands projection-multi-compile)
+
+(use-package! consult-compile-multi
+  :after compile-multi
+  :config
+  (consult-compile-multi-mode +1))
+
+(use-package! compile-multi-embark
+  :after (compile-multi embark)
+  :config
+  (compile-multi-embark-mode +1))
+
+(use-package! compile-multi-nerd-icons
+  :after (compile-multi nerd-icons-completion))
+#+end_src
+
+** Task Runner
+
+Project task entry point and compilation behavior.
+
+#+begin_src emacs-lisp :results none :tangle yes
+(defvar jecs/project-task-init-hook nil)
+
+(defun jecs/project-tasks ()
+  "Open project tasks."
+  (interactive)
+  (require 'projection-multi)
+
+  (when-let* ((project (project-current nil)))
+    (run-hook-with-args 'jecs/project-task-init-hook project))
+
+  (call-interactively #'projection-multi-compile))
+
+(defun jecs/focus-compilation-buffer (buffer &rest _)
+  "Focus BUFFER after starting a compilation."
+  (when (buffer-live-p buffer)
+    (pop-to-buffer buffer)))
+
+(after! compile
+  (advice-add 'compilation-start
+              :filter-return
+              #'jecs/focus-compilation-buffer))
+
+(map! :leader
+      :desc "Project Tasks" "c m" #'jecs/project-tasks)
+#+end_src
+
+** CMake
+
+Preset-aware CMake build-tree management.
+
+#+begin_src emacs-lisp :results none :tangle yes
+;;; Paths
+
+(defun jecs/cmake--project-root (project)
+  (file-name-as-directory
+   (expand-file-name (project-root project))))
+
+(defun jecs/cmake--cache-directory (project)
+  (expand-file-name
+   ".cache/cmake-builds"
+   (jecs/cmake--project-root project)))
+
+(defun jecs/cmake--state-file (project)
+  (expand-file-name
+   "state.el"
+   (jecs/cmake--cache-directory project)))
+
+(defun jecs/cmake--active-build-directory (project)
+  (expand-file-name
+   "build"
+   (jecs/cmake--project-root project)))
+
+(defun jecs/cmake--parked-build-directory (project preset)
+  (expand-file-name
+   preset
+   (jecs/cmake--cache-directory project)))
+
+
+;;; Project detection
+
+(defun jecs/cmake--preset-project-p (project)
+  "Return non-nil when PROJECT is a CMake project using presets."
+  (let ((root (jecs/cmake--project-root project)))
+    (and
+     (file-exists-p (expand-file-name "CMakeLists.txt" root))
+     (or
+      (file-exists-p (expand-file-name "CMakePresets.json" root))
+      (file-exists-p (expand-file-name "CMakeUserPresets.json" root))))))
+
+
+;;; State
+
+(defun jecs/cmake--read-state (project)
+  (when-let* ((file (jecs/cmake--state-file project))
+              ((file-exists-p file)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (let ((read-eval nil))
+        (read (current-buffer))))))
+
+(defun jecs/cmake--write-state (project preset)
+  (let ((file (jecs/cmake--state-file project)))
+    (make-directory (file-name-directory file) t)
+    (with-temp-file file
+      (prin1 (list :active-preset preset) (current-buffer))
+      (insert "\n"))))
+
+(defun jecs/cmake--active-preset (project)
+  (plist-get
+   (jecs/cmake--read-state project)
+   :active-preset))
+
+
+;;; Projection integration
+
+(defun jecs/cmake--read-configure-preset (project)
+  (let ((default-directory (jecs/cmake--project-root project)))
+    (if-let* ((presets
+               (projection-cmake--list-presets-for-build-type 'configure)))
+        (projection-cmake--read-preset
+         "Select active CMake preset: "
+         presets)
+      (user-error "No CMake configure presets found"))))
+
+(defun jecs/cmake--set-projection-preset (project preset)
+  "Set Projection's configure preset."
+  (projection-cmake-set-preset
+   project
+   'configure
+   preset))
+
+(defun jecs/cmake--clear-projection-caches (project)
+  (dolist (cache-var
+           '(projection-cmake-code-model
+             projection-cmake-ctest-targets
+             projection-cmake-build-target
+             projection-cmake-ctest-target))
+    (projection-cache-clear-single
+     project
+     cache-var
+     projection--project-cache)))
+
+(defun jecs/cmake--set-active-preset (project preset)
+  (dolist (build-type '(configure build test package workflow))
+    (projection-cmake-set-preset project build-type nil))
+
+  (jecs/cmake--set-projection-preset project preset)
+  (jecs/cmake--clear-projection-caches project)
+  (jecs/cmake--write-state project preset))
+
+
+;;; Initialization
+
+(defun jecs/cmake--ensure-active-preset (project)
+  (if-let* ((preset (jecs/cmake--active-preset project)))
+      (progn
+        (jecs/cmake--set-projection-preset project preset)
+        preset)
+
+    (when (file-exists-p
+           (jecs/cmake--active-build-directory project))
+      (user-error
+       "CMake build/ exists without managed preset state; remove build/ once before initializing"))
+
+    (let* ((preset-config
+            (jecs/cmake--read-configure-preset project))
+           (preset
+            (alist-get 'name preset-config)))
+      (jecs/cmake--set-active-preset project preset)
+      preset)))
+
+(defun jecs/cmake--initialize-project (project)
+  "Initialize CMake task state when PROJECT uses CMake presets."
+  (when (jecs/cmake--preset-project-p project)
+    (require 'projection-type-cmake)
+    (jecs/cmake--ensure-active-preset project)))
+
+(add-hook 'jecs/project-task-init-hook
+          #'jecs/cmake--initialize-project)
+
+
+;;; Preset switching
+
+(defun jecs/cmake--switch-build-tree (project preset)
+  "Switch PROJECT to PRESET."
+  (let* ((current-preset
+          (jecs/cmake--active-preset project))
+         (active-directory
+          (jecs/cmake--active-build-directory project))
+         (current-directory
+          (jecs/cmake--parked-build-directory
+           project
+           current-preset))
+         (new-directory
+          (jecs/cmake--parked-build-directory
+           project
+           preset)))
+
+    (if (equal current-preset preset)
+        (message "CMake preset already active: %s" preset)
+
+      (when (file-exists-p current-directory)
+        (user-error
+         "Cached CMake build already exists for %s"
+         current-preset))
+
+      (make-directory
+       (jecs/cmake--cache-directory project)
+       t)
+
+      (when (file-exists-p active-directory)
+        (rename-file
+         active-directory
+         current-directory))
+
+      (when (file-exists-p new-directory)
+        (rename-file
+         new-directory
+         active-directory))
+
+      (jecs/cmake--set-active-preset project preset)
+
+      (message
+       (if (file-exists-p active-directory)
+           "Switched CMake preset: %s -> %s"
+         "Switched CMake preset: %s -> %s; configure required")
+       current-preset
+       preset))))
+
+(defun jecs/cmake-switch-preset ()
+  "Switch the current project's active CMake preset."
+  (interactive)
+  (let ((project
+         (or (project-current nil)
+             (user-error "Not inside a project"))))
+
+    (unless (jecs/cmake--preset-project-p project)
+      (user-error "Current project is not a CMake preset project"))
+
+    (require 'projection-type-cmake)
+    (jecs/cmake--ensure-active-preset project)
+
+    (let* ((preset-config
+            (jecs/cmake--read-configure-preset project))
+           (preset
+            (alist-get 'name preset-config)))
+      (jecs/cmake--switch-build-tree
+       project
+       preset))))
+
+
+;;; compile-multi integration
+
+(defun jecs/cmake--compile-multi-targets ()
+  (when-let* ((project (project-current nil))
+              ((jecs/cmake--preset-project-p project)))
+    `(("cmake:switch-preset"
+       :command ,#'jecs/cmake-switch-preset
+       :annotation ,(format
+                     "active:%s"
+                     (or
+                      (jecs/cmake--active-preset project)
+                      "none"))))))
+
+
+;;; Configuration
+
+(after! projection-type-cmake
+  (setq projection-cmake-preset
+        '((configure . silent)
+          (t . prompt-once-when-multiple))
+        projection-cmake-build-directory "build"))
+
+(after! projection-multi
+  (add-to-list
+   'compile-multi-config
+   '(t jecs/cmake--compile-multi-targets)))
+#+end_src
+
+
+* MacOS
+** X Widgets
+
+#+begin_src emacs-lisp :tangle no
+(when (eq system-type 'darwin)
+  (defun jecs/open-raycast ()
+    "Open Raycast via AppleScript"
+    (interactive)
+    (shell-command "open /Applications/Raycast.app"))
+  (map! :desc "Open Raycast" :g "C-M-x" #'jecs/open-raycast))
+#+end_src
+
+* Windows
 
 Some configuration for when I have to use windows.
 
@@ -1495,19 +1831,7 @@ Some configuration for when I have to use windows.
           (window-parameters . ((no-delete-other-windows . t)))))))))
 #+end_src
 
-* MacOS
-** X Widgets
-
-#+begin_src emacs-lisp :tangle yes
-(when (eq system-type 'darwin)
-  (defun jecs/open-raycast ()
-    "Open Raycast via AppleScript"
-    (interactive)
-    (shell-command "open /Applications/Raycast.app"))
-  (map! :desc "Open Raycast" :g "C-M-x" #'jecs/open-raycast))
-#+end_src
-
-* Other Packages
+* Other
 
 Additional packages that don't require any configurations.
 

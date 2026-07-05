@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: compile flags
+# key: __compile-flags
+# --
+-std=${1:$$(yas-choose-value '("c++20" "c++23" "c++26"))}
+-Wall
+-Wextra
+-Wpedantic
+-I.
+$0
