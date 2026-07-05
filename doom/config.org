@@ -498,6 +498,9 @@ Use grep over TRAMP, otherwise use ripgrep."
       :localleader
       :desc "Search here" "s" #'jecs/dired-grep)
 
+(after! dired
+  (remove-hook 'dired-mode-hook #'dired-omit-mode))
+
 ; auto select new grep buffers
 (add-to-list 'display-buffer-alist
              '("\\*grep\\*"
@@ -1559,7 +1562,7 @@ Project task entry point and compilation behavior.
               #'jecs/focus-compilation-buffer))
 
 (map! :leader
-      :desc "Project Tasks" "c m" #'jecs/project-tasks)
+      :desc "Project Tasks" "c p" #'jecs/project-tasks)
 #+end_src
 
 ** CMake
@@ -1665,6 +1668,90 @@ Preset-aware CMake build-tree management.
   (jecs/cmake--set-projection-preset project preset)
   (jecs/cmake--clear-projection-caches project)
   (jecs/cmake--write-state project preset))
+
+
+;;; Run command
+
+(defvar jecs/cmake--run-arguments
+  (make-hash-table :test #'equal))
+
+(defvar jecs/cmake--run-argument-history nil)
+
+(defun jecs/cmake--executable-artifacts ()
+  (seq-filter
+   (lambda (artifact)
+     (eq (alist-get 'type artifact)
+         'cmake-executable))
+   (projection-cmake-list-artifacts)))
+
+(defun jecs/cmake--read-executable-artifact ()
+  (let* ((artifacts
+          (jecs/cmake--executable-artifacts))
+         (candidates
+          (mapcar
+           (lambda (artifact)
+             (cons
+              (alist-get 'name artifact)
+              artifact))
+           artifacts)))
+    (pcase candidates
+      ('()
+       (user-error "No CMake executable artifacts found"))
+      (`((,_ . ,artifact))
+       artifact)
+      (_
+       (cdr
+        (assoc
+         (completing-read
+          "Select CMake executable: "
+          candidates
+          nil
+          t)
+         candidates))))))
+
+(defun jecs/cmake--read-run-arguments (project artifact)
+  (let* ((key
+          (cons
+           (jecs/cmake--project-root project)
+           (alist-get 'arg0 artifact)))
+         (previous
+          (gethash key jecs/cmake--run-arguments))
+         (arguments
+          (read-shell-command
+           "Run arguments: "
+           previous
+           'jecs/cmake--run-argument-history)))
+    (puthash
+     key
+     arguments
+     jecs/cmake--run-arguments)
+    arguments))
+
+(defun jecs/cmake-run ()
+  "Run a CMake executable artifact."
+  (interactive)
+  (let* ((project
+          (or (project-current nil)
+              (user-error "Not inside a project")))
+         (default-directory
+          (jecs/cmake--project-root project))
+         (artifact
+          (jecs/cmake--read-executable-artifact))
+         (executable
+          (alist-get 'arg0 artifact))
+         (arguments
+          (jecs/cmake--read-run-arguments
+           project
+           artifact)))
+    (compile
+     (string-join
+      (delq
+       nil
+       (list
+        (shell-quote-argument executable)
+        (unless (string-empty-p arguments)
+          arguments)))
+      " "))))
 
 
 ;;; Initialization
@@ -1787,7 +1874,11 @@ Preset-aware CMake build-tree management.
   (setq projection-cmake-preset
         '((configure . silent)
           (t . prompt-once-when-multiple))
-        projection-cmake-build-directory "build"))
+        projection-cmake-build-directory "build")
+
+  (oset projection-project-type-cmake
+        run
+        #'jecs/cmake-run))
 
 (after! projection-multi
   (add-to-list
@@ -1795,6 +1886,284 @@ Preset-aware CMake build-tree management.
    '(t jecs/cmake--compile-multi-targets)))
 #+end_src
 
+** Clang
+
+Task generation for simple C and C++ projects using compile_flags.txt
+
+#+begin_src emacs-lisp :results none :tangle yes
+;;; State
+
+(defvar jecs/clang--run-arguments
+  (make-hash-table :test #'equal))
+
+(defvar jecs/clang--run-argument-history nil)
+
+
+;;; Paths
+
+(defun jecs/clang--project-root ()
+  (when-let* ((root
+               (locate-dominating-file
+                default-directory
+                "compile_flags.txt")))
+    (file-name-as-directory
+     (expand-file-name root))))
+
+(defun jecs/clang--build-directory ()
+  (expand-file-name
+   "build"
+   (jecs/clang--project-root)))
+
+(defun jecs/clang--project-name ()
+  (file-name-nondirectory
+   (directory-file-name
+    (jecs/clang--project-root))))
+
+
+;;; Project detection
+
+(defun jecs/clang--c-source-files ()
+  (when-let* ((root (jecs/clang--project-root)))
+    (directory-files
+     root
+     t
+     "\\.c\\'")))
+
+(defun jecs/clang--cxx-source-files ()
+  (when-let* ((root (jecs/clang--project-root)))
+    (directory-files
+     root
+     t
+     "\\.\\(cc\\|cpp\\|cxx\\)\\'")))
+
+(defun jecs/clang--project-p ()
+  "Return non-nil when the current directory belongs to a simple Clang project."
+  (and
+   (jecs/clang--project-root)
+   (or
+    (jecs/clang--c-source-files)
+    (jecs/clang--cxx-source-files))))
+
+(defun jecs/clang--language ()
+  (let ((c-sources
+         (jecs/clang--c-source-files))
+        (cxx-sources
+         (jecs/clang--cxx-source-files)))
+    (cond
+     ((and c-sources cxx-sources)
+      (user-error
+       "Mixed C and C++ projects require a build system"))
+     (cxx-sources 'c++)
+     (c-sources 'c))))
+
+(defun jecs/clang--source-files ()
+  (pcase (jecs/clang--language)
+    ('c
+     (jecs/clang--c-source-files))
+    ('c++
+     (jecs/clang--cxx-source-files))))
+
+(defun jecs/clang--compiler ()
+  (pcase (jecs/clang--language)
+    ('c "clang")
+    ('c++ "clang++")))
+
+
+;;; Flags
+
+(defun jecs/clang--flags ()
+  (with-temp-buffer
+    (insert-file-contents
+     (expand-file-name
+      "compile_flags.txt"
+      (jecs/clang--project-root)))
+    (split-string
+     (buffer-string)
+     "[\r\n]+"
+     t
+     "[[:space:]]+")))
+
+
+;;; Run arguments
+
+(defun jecs/clang--read-run-arguments ()
+  (let* ((root
+          (jecs/clang--project-root))
+         (previous
+          (gethash root jecs/clang--run-arguments))
+         (arguments
+          (read-shell-command
+           "Run arguments: "
+           previous
+           'jecs/clang--run-argument-history)))
+    (puthash
+     root
+     arguments
+     jecs/clang--run-arguments)
+    arguments))
+
+
+;;; Commands
+
+(defun jecs/clang--shell-command (args)
+  (mapconcat
+   #'shell-quote-argument
+   args
+   " "))
+
+(defun jecs/clang--executable-file ()
+  (expand-file-name
+   "main"
+   (jecs/clang--build-directory)))
+
+(defun jecs/clang--object-file (source)
+  (expand-file-name
+   (concat
+    (file-name-nondirectory source)
+    ".o")
+   (jecs/clang--build-directory)))
+
+(defun jecs/clang--static-library-file ()
+  (expand-file-name
+   (format
+    "lib%s.a"
+    (jecs/clang--project-name))
+   (jecs/clang--build-directory)))
+
+(defun jecs/clang--shared-library-file ()
+  (expand-file-name
+   (format
+    "lib%s.%s"
+    (jecs/clang--project-name)
+    (if (eq system-type 'darwin)
+        "dylib"
+      "so"))
+   (jecs/clang--build-directory)))
+
+(defun jecs/clang--build-exe-command ()
+  (format
+   "mkdir -p %s && %s"
+   (shell-quote-argument
+    (jecs/clang--build-directory))
+   (jecs/clang--shell-command
+    `(,(jecs/clang--compiler)
+      ,@(jecs/clang--flags)
+      ,@(jecs/clang--source-files)
+      "-o"
+      ,(jecs/clang--executable-file)))))
+
+(defun jecs/clang--run-exe-command (arguments)
+  (string-join
+   (delq
+    nil
+    (list
+     (shell-quote-argument
+      (jecs/clang--executable-file))
+     (unless (string-empty-p arguments)
+       arguments)))
+   " "))
+
+(defun jecs/clang--build-run-exe-command (arguments)
+  (format
+   "%s && %s"
+   (jecs/clang--build-exe-command)
+   (jecs/clang--run-exe-command arguments)))
+
+(defun jecs/clang--build-static-command ()
+  (let* ((compiler
+          (jecs/clang--compiler))
+         (flags
+          (jecs/clang--flags))
+         (sources
+          (jecs/clang--source-files))
+         (objects
+          (mapcar
+           #'jecs/clang--object-file
+           sources))
+         (compile-commands
+          (mapcar
+           (lambda (source)
+             (jecs/clang--shell-command
+              `(,compiler
+                ,@flags
+                "-c"
+                ,source
+                "-o"
+                ,(jecs/clang--object-file source))))
+           sources)))
+    (format
+     "mkdir -p %s && %s && %s"
+     (shell-quote-argument
+      (jecs/clang--build-directory))
+     (string-join compile-commands " && ")
+     (jecs/clang--shell-command
+      `("ar"
+        "rcs"
+        ,(jecs/clang--static-library-file)
+        ,@objects)))))
+
+(defun jecs/clang--build-shared-command ()
+  (format
+   "mkdir -p %s && %s"
+   (shell-quote-argument
+    (jecs/clang--build-directory))
+   (jecs/clang--shell-command
+    `(,(jecs/clang--compiler)
+      ,@(jecs/clang--flags)
+      ,@(if (eq system-type 'darwin)
+            '("-dynamiclib")
+          '("-fPIC" "-shared"))
+      ,@(jecs/clang--source-files)
+      "-o"
+      ,(jecs/clang--shared-library-file)))))
+
+
+;;; Actions
+
+(defun jecs/clang-run-exe ()
+  "Run the current Clang project's executable."
+  (interactive)
+  (let ((default-directory
+         (jecs/clang--project-root))
+        (arguments
+         (jecs/clang--read-run-arguments)))
+    (compile
+     (jecs/clang--run-exe-command arguments))))
+
+(defun jecs/clang-build-run-exe ()
+  "Build and run the current Clang project's executable."
+  (interactive)
+  (let ((default-directory
+         (jecs/clang--project-root))
+        (arguments
+         (jecs/clang--read-run-arguments)))
+    (compile
+     (jecs/clang--build-run-exe-command arguments))))
+
+
+;;; compile-multi integration
+
+(defun jecs/clang--compile-multi-targets ()
+  (when (jecs/clang--project-p)
+    `(("clang:build-exe"
+       :command ,(jecs/clang--build-exe-command))
+      ("clang:build-run-exe"
+       :command ,#'jecs/clang-build-run-exe)
+      ("clang:run-exe"
+       :command ,#'jecs/clang-run-exe)
+      ("clang:build-static"
+       :command ,(jecs/clang--build-static-command))
+      ("clang:build-shared"
+       :command ,(jecs/clang--build-shared-command)))))
+
+
+;;; Configuration
+
+(after! projection-multi
+  (add-to-list
+   'compile-multi-config
+   '(t jecs/clang--compile-multi-targets)))
+#+end_src
 
 * MacOS
 ** X Widgets
