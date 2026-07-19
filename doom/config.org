@@ -132,6 +132,48 @@ Don't ask me why I'm weird.
          "C-m"    #'jecs/newline-same-indent))
 #+end_src
 
+*** jecs/delete-project-git-lock-file
+
+#+begin_src emacs-lisp :results none :tangle yes
+(defun jecs/delete-project-git-lock-file (&optional force)
+  "Delete the current project's Git index.lock file.
+
+With prefix arg FORCE, delete without confirmation."
+  (interactive "P")
+  (require 'subr-x)
+
+  (let* ((root
+          (or (when (fboundp 'projectile-project-root)
+                (ignore-errors (projectile-project-root)))
+              (when (fboundp 'project-current)
+                (when-let ((project (project-current nil)))
+                  (project-root project)))
+              (vc-root-dir)))
+         (lock-file
+          (when root
+            (let ((default-directory root))
+              (expand-file-name
+               (string-trim
+                (shell-command-to-string
+                 "git rev-parse --git-path index.lock 2>/dev/null"))
+               root)))))
+
+    (cond
+     ((not root)
+      (user-error "Not inside a project"))
+
+     ((or (not lock-file) (string-empty-p lock-file))
+      (user-error "Could not resolve Git lock file"))
+
+     ((not (file-exists-p lock-file))
+      (message "No Git lock file exists: %s" lock-file))
+
+     ((or force
+          (yes-or-no-p (format "Delete Git lock file?\n%s\n" lock-file)))
+      (delete-file lock-file)
+      (message "Deleted Git lock file: %s" lock-file)))))
+#+end_src
+
 ** Keybinds
 
 These are some misc keybinds that I use.
@@ -166,6 +208,11 @@ These are some misc keybinds that I use.
       :desc "Open Calculator"    "o c" #'calc
       :desc "Open Calendar"      "o k" #'calendar
       :desc "Open Scratch"       "o x" #'scratch-buffer
+      :desc "Dired"              "o d" #'dired-jump
+      :desc "Start a debugger"   "o D" #'+debugger/start
+      
+      ;; disable
+      "o -" nil
 
       ;; quit
       :desc "Quit Tramp Buffers" "q T" #'tramp-cleanup-all-buffers)
@@ -235,13 +282,33 @@ These are some misc keybinds that I use.
 (setq default-frame-alist
       (append
        '((alpha-background . 98)
-         (name . "emacs")
-         (font . "Iosevka-18"))
+         (name . "emacs"))
        default-frame-alist))
 
 (when (display-graphic-p)
   (add-hook 'window-setup-hook #'jecs/apply-frame-size-smart)
   (add-hook 'after-make-frame-functions #'jecs/apply-frame-size-smart))
+#+end_src
+
+** Font
+
+#+begin_src emacs-lisp :results none :tangle yes
+(setq doom-font
+      (font-spec :family "Berkeley Mono"
+                 :size 18
+                 :weight 'semi-light
+                 :width 'condensed))
+
+;; (setq doom-font
+;;       (font-spec :family "Iosevka"
+;;                  :size 18
+;;                  :weight 'regular))
+
+; iosevka has better unicode blocks for the dashboard
+(custom-set-faces!
+  '(+dashboard-banner
+    :family "Iosevka"
+    :foreground "#b0b0b0"))
 #+end_src
 
 ** Dashboard
@@ -936,11 +1003,11 @@ Note to self:
 
 If your token expires run =M-x slack-refresh-token=
 
-#+begin_src emacs-lisp :results output :tangle packages.el
+#+begin_src emacs-lisp :results output :tangle no
 (package! slack)
 #+end_src
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle no
 (use-package! slack
   :commands (slack-start slack-stop slack-select-rooms)
   :init
@@ -1027,12 +1094,14 @@ Evil mode customizations.
       :desc "Popup vterm"             "t t" #'+vterm/toggle)
 #+end_src
 
-** gh
+** ghostty
 
 #+begin_src emacs-lisp :results no :tangle yes
 (map! :leader
-      :desc "Open large ghostel (here)" "o t" #'+ghostel/here
-      :desc "Popup ghostel"             "t t" #'+ghostel/toggle)
+      :desc "Open ghostel"            "o t" #'+ghostel/here
+      :desc "Popup ghostel"           "t t" #'+ghostel/toggle
+      ; disable
+      "o T" nil)
 
 (after! ghostel
   (setq ghostel-timer-delay 0.0)

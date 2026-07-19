@@ -4,8 +4,6 @@
 
 (package! verb)
 
-(package! slack)
-
 (package! windresize)
 
 (package! expreg)
