@@ -635,14 +635,21 @@ Company is a completion engine. I've been using corfu instead though.
 
 Gptel is a tool to interact with large language models in emacs.
 
+#+begin_src emacs-lisp :tangle packages.el
+(unpin! gptel)
+#+end_src
+
 #+begin_src emacs-lisp :results none
 (use-package! gptel
   :defer t
-  :bind
   :config
-  (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
-  (setq gptel-default-mode 'org-mode)
-  (setq gptel-model 'gpt-5.5))
+  (add-hook 'gptel-post-stream-hook #'gptel-auto-scroll)
+  (setq gptel-default-mode 'org-mode
+        gptel-backend
+        (gptel-make-openai "ChatGPT"
+          :key 'gptel-api-key
+          :stream t)
+        gptel-model 'gpt-5.6-sol))
 
 (with-eval-after-load 'gptel-rewrite
   (defun jecs/gptel-append-python-rewrite-indent-rules (directive)
@@ -655,6 +662,19 @@ Gptel is a tool to interact with large language models in emacs.
   (advice-add 'gptel--rewrite-directive-default
               :filter-return
               #'jecs/gptel-append-python-rewrite-indent-rules))
+#+end_src
+
+** agent-shell
+
+#+begin_src emacs-lisp :tangle packages.el 
+(package! shell-maker)
+(package! acp)
+(package! agent-shell)
+#+end_src
+
+#+begin_src emacs-lisp :results none
+;; (use-package! agent-shell
+;;   :commands (agent-shell agent-shell-openai-start-codex))
 #+end_src
 
 ** Corfu
@@ -1105,7 +1125,10 @@ Evil mode customizations.
 
 (after! ghostel
   (setq ghostel-timer-delay 0.0)
-  (setq ghostel-adaptive-fps nil))
+  (setq ghostel-adaptive-fps nil)
+  (setq ghostel-shell-integration t
+        ghostel-tramp-shell-integration t
+        ghostel-ssh-install-terminfo 'auto))
 #+end_src
 
 ** windresize
@@ -1138,6 +1161,15 @@ expand region but better?
 (set-file-template! "compile_flags\\.txt$"
   :trigger "__compile-flags"
   :mode 'text-mode)
+#+end_src
+
+** multiple-cursors
+
+#+begin_src emacs-lisp :results no :tangle yes
+(after! multiple-cursors
+  ;; Never ask; run unknown commands for every cursor.
+  (setq mc/always-run-for-all t)
+  (setq mc/cmds-to-run-once nil))
 #+end_src
 
 * Programming
@@ -1559,6 +1591,573 @@ Configurations & keybinds for interacting with AWS CLI.
 ;;   (setq lsp-clients-lua-language-server-bin
 ;;         (or (executable-find "lua-language-server")
 ;;             "/opt/homebrew/bin/lua-language-server")))
+#+end_src
+
+** Janet
+
+Janet is a small embeddable lisp language.
+
+#+begin_src emacs-lisp :results none
+(after! lsp-mode
+  (dolist (mode '(janet-mode janet-ts-mode))
+    (add-to-list 'lsp-language-id-configuration
+                 (cons mode "janet")))
+
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection
+    (lsp-stdio-connection
+     '("janet-lsp")
+     (lambda () (executable-find "janet-lsp")))
+    :major-modes '(janet-mode janet-ts-mode)
+    :server-id 'janet-lsp
+    :download-server-fn
+    (lambda (_client callback error-callback _update?)
+      (lsp-async-start-process
+       callback error-callback
+       "jpm" "install"
+       "https://github.com/CFiggers/janet-lsp.git")))))
+
+(add-hook! '(janet-mode-hook janet-ts-mode-hook)
+           #'lsp-deferred)
+
+(after! projectile
+  (add-to-list 'projectile-project-root-files "project.janet"))
+
+(defvar-local jecs/janet-buildpath "build/"
+  "JPM build path used by the Janet REPL.")
+
+(defvar-local jecs/janet--evaluation nil)
+(defvar-local jecs/janet--protocol-carry "")
+
+(defun jecs/janet--marker-prefix-length (text marker)
+  (let ((prefix-length
+         (min (1- (length marker))
+              (length text))))
+
+    (while
+        (and (> prefix-length 0)
+             (not
+              (string-suffix-p
+               (substring marker 0 prefix-length)
+               text)))
+      (setq prefix-length (1- prefix-length)))
+
+    prefix-length))
+
+(defun jecs/janet--frame-chunk (text marker)
+  (if-let ((start
+            (string-match
+             (regexp-quote marker)
+             text)))
+
+      (list t
+            (substring text 0 start)
+            (substring text (match-end 0)))
+
+    (let* ((held-length
+            (jecs/janet--marker-prefix-length
+             text marker))
+           (split (- (length text) held-length)))
+
+      (list nil
+            (substring text 0 split)
+            (substring text split)))))
+
+(defun jecs/janet--filter-framed-output (text)
+  (if (not jecs/janet--evaluation)
+      (prog1
+          (concat jecs/janet--protocol-carry text)
+        (setq jecs/janet--protocol-carry ""))
+
+    (let ((phase
+           (plist-get jecs/janet--evaluation :phase)))
+
+      (pcase phase
+        (:waiting-start
+         (let* ((start-marker
+                 (plist-get
+                  jecs/janet--evaluation
+                  :start-marker))
+                (data
+                 (concat
+                  jecs/janet--protocol-carry
+                  text)))
+
+           (pcase-let
+               ((`(,found ,_before ,after)
+                 (jecs/janet--frame-chunk
+                  data start-marker)))
+
+             (if found
+                 (progn
+                   (setq jecs/janet--protocol-carry "")
+                   (setf
+                    (plist-get
+                     jecs/janet--evaluation
+                     :phase)
+                    :stdout)
+
+                   (jecs/janet--filter-framed-output
+                    after))
+
+               (setq jecs/janet--protocol-carry after)
+               ""))))
+
+        (:stdout
+         (let* ((result-marker
+                 (plist-get
+                  jecs/janet--evaluation
+                  :result-marker))
+                (data
+                 (concat
+                  jecs/janet--protocol-carry
+                  text)))
+
+           (pcase-let
+               ((`(,found ,before ,after)
+                 (jecs/janet--frame-chunk
+                  data result-marker)))
+
+             (if found
+                 (progn
+                   (setq jecs/janet--protocol-carry "")
+                   (setf
+                    (plist-get
+                     jecs/janet--evaluation
+                     :phase)
+                    :return)
+
+                   (concat
+                    before
+                    (jecs/janet--filter-framed-output
+                     after)))
+
+               (setq jecs/janet--protocol-carry after)
+               before))))
+
+        (:return
+         (prog1
+             (concat jecs/janet--protocol-carry text)
+           (setq jecs/janet--protocol-carry "")))
+
+        (_
+         text)))))
+
+(defun jecs/janet--discard-evaluation (repl)
+  (when (buffer-live-p repl)
+    (with-current-buffer repl
+      (when-let ((state jecs/janet--evaluation))
+        (let ((position (plist-get state :position))
+              (output (plist-get state :output))
+              (process (get-buffer-process repl)))
+
+          (setq jecs/janet--evaluation nil)
+          (setq jecs/janet--protocol-carry "")
+
+          (remove-hook
+           'comint-redirect-hook
+           #'jecs/janet--schedule-evaluation-finished
+           t)
+
+          (when (and process
+                     (not
+                      (bound-and-true-p
+                       comint-redirect-completed)))
+            (ignore-errors
+              (comint-redirect-cleanup)))
+
+          (when (buffer-live-p output)
+            (kill-buffer output))
+
+          (when (markerp position)
+            (set-marker position nil)))))))
+
+(defun jecs/janet--repl-arguments (root buildpath)
+  (let ((arguments nil)
+        (local-tree
+         (expand-file-name "jpm_tree" root))
+        (native-path
+         (expand-file-name buildpath root)))
+
+    (when (file-directory-p local-tree)
+      (setq arguments
+            (append arguments '("--local"))))
+
+    (append
+     arguments
+     (list
+      (format "--buildpath=%s" buildpath)
+      "janet"
+      "-e"
+      (format
+       "(module/add-syspath %S)"
+       native-path)
+      "-s"))))
+
+(defun jecs/janet-repl ()
+  (interactive)
+  (require 'comint)
+
+  (let* ((root
+          (or (doom-project-root)
+              default-directory))
+         (default-directory root)
+         (buildpath jecs/janet-buildpath)
+         (arguments
+          (jecs/janet--repl-arguments
+           root buildpath))
+         (name
+          (format
+           "janet:%s"
+           (doom-project-name root)))
+         (buffer
+          (get-buffer-create
+           (format "*%s*" name))))
+
+    (unless (comint-check-proc buffer)
+      (jecs/janet--discard-evaluation buffer)
+
+      (with-current-buffer buffer
+        (let ((inhibit-read-only t))
+          (erase-buffer)))
+
+      (apply
+       #'make-comint-in-buffer
+       name buffer "jpm" nil arguments))
+
+    (with-current-buffer buffer
+      (setq-local comint-prompt-regexp
+                  "^repl:[0-9]+:[^>]*> *")
+
+      (setq-local comint-process-echoes t)
+
+      (add-hook
+       'comint-preoutput-filter-functions
+       #'jecs/janet--filter-framed-output
+       nil t))
+
+    buffer))
+
+(defun jecs/janet--register-repl (source repl)
+  (with-current-buffer source
+    (let* ((mode major-mode)
+           (root (doom-project-root))
+           (handler
+            (alist-get
+             mode
+             +eval-repl-handler-alist)))
+
+      (unless root
+        (user-error "Janet REPL requires a project"))
+
+      (with-current-buffer repl
+        (setq-local
+         +eval-repl-plist
+         (append
+          (list :repl t)
+          (cdr handler))))
+
+      (puthash
+       (cons mode root)
+       repl
+       +eval-repl-buffers)))
+
+  repl)
+
+(defun jecs/janet--at-prompt-p ()
+  (save-excursion
+    (goto-char (point-max))
+    (forward-line 0)
+    (looking-at-p comint-prompt-regexp)))
+
+(defun jecs/janet--ensure-repl ()
+  (let ((source (current-buffer))
+        (repl (+eval-current-repl-buffer)))
+
+    (unless (and repl
+                 (comint-check-proc repl))
+      (setq repl (jecs/janet-repl))
+      (jecs/janet--register-repl source repl))
+
+    (with-current-buffer repl
+      (unless jecs/janet--evaluation
+        (let ((process
+               (get-buffer-process repl))
+              (deadline
+               (+ (float-time) 2.0)))
+
+          (while (and process
+                      (process-live-p process)
+                      (< (float-time) deadline)
+                      (not
+                       (jecs/janet--at-prompt-p)))
+            (accept-process-output process 0.05))
+
+          (unless (jecs/janet--at-prompt-p)
+            (user-error
+             "Janet did not produce a REPL prompt")))))
+
+    repl))
+
+(defun jecs/janet--extract-result (text state)
+  (let* ((start-marker
+          (plist-get state :start-marker))
+         (result-marker
+          (plist-get state :result-marker))
+         (start-position
+          (string-match
+           (regexp-quote start-marker)
+           text))
+         (start-end
+          (and start-position
+               (match-end 0)))
+         (result-position
+          (and start-end
+               (string-match
+                (regexp-quote result-marker)
+                text
+                start-end)))
+         (result-end
+          (and result-position
+               (match-end 0)))
+         (result
+          (cond
+           (result-end
+            (substring text result-end))
+
+           (start-end
+            (substring text start-end))
+
+           (t
+            text))))
+
+    (require 'ansi-color)
+
+    (string-trim
+     (ansi-color-filter-apply result))))
+
+(defun jecs/janet--schedule-evaluation-finished ()
+  (let ((repl (current-buffer)))
+    (run-at-time
+     0 nil
+     #'jecs/janet--evaluation-finished
+     repl)))
+
+(defun jecs/janet--evaluation-finished (repl)
+  (when (buffer-live-p repl)
+    (with-current-buffer repl
+      (when-let ((state jecs/janet--evaluation))
+        (let* ((source
+                (plist-get state :source))
+               (position
+                (plist-get state :position))
+               (output
+                (plist-get state :output))
+               (text
+                (when (buffer-live-p output)
+                  (with-current-buffer output
+                    (buffer-string))))
+               (result
+                (and text
+                     (jecs/janet--extract-result
+                      text state))))
+
+          (setq jecs/janet--evaluation nil)
+          (setq jecs/janet--protocol-carry "")
+
+          (remove-hook
+           'comint-redirect-hook
+           #'jecs/janet--schedule-evaluation-finished
+           t)
+
+          (when (buffer-live-p output)
+            (kill-buffer output))
+
+          (when result
+            (if (and (buffer-live-p source)
+                     (marker-position position))
+
+                (with-current-buffer source
+                  (goto-char position)
+                  (require 'eros)
+
+                  (let ((eros-eval-result-prefix
+                         (concat
+                          " "
+                          eros-eval-result-prefix)))
+
+                    (+eval-display-results
+                     (concat result " ")
+                     source)))
+
+              (message "%s" result)))
+
+          (when (markerp position)
+            (set-marker position nil)))))))
+
+(defun jecs/janet--mirror-input (code)
+  (goto-char (point-max))
+  (insert (string-trim code))
+
+  (let ((comint-input-sender
+         (lambda (_process _input)))
+        (comint-process-echoes nil))
+
+    (comint-send-input)))
+
+(defun jecs/janet-eval-region (beg end)
+  (interactive "r")
+  (require 'json)
+
+  (let* ((source (current-buffer))
+         (position (copy-marker end))
+         (code
+          (buffer-substring-no-properties
+           beg end))
+         (repl
+          (jecs/janet--ensure-repl))
+         (output
+          (generate-new-buffer
+           " *janet-eval*"))
+         (id
+          (format
+           "%x"
+           (random most-positive-fixnum)))
+         (start-marker
+          (format
+           "\x1eJANET_START_%s\x1f"
+           id))
+         (result-marker
+          (format
+           "\x1eJANET_RESULT_%s\x1f"
+           id))
+         (command
+          (format
+           (concat
+            "(do "
+            "(file/write stdout %s) "
+            "(file/flush stdout) "
+            "(let [result (eval-string %s)] "
+            "(file/write stdout %s) "
+            "(file/flush stdout) "
+            "result))")
+           (json-encode-string start-marker)
+           (json-encode-string code)
+           (json-encode-string result-marker))))
+
+    (with-current-buffer repl
+      (when jecs/janet--evaluation
+        (kill-buffer output)
+        (set-marker position nil)
+
+        (user-error
+         "A Janet evaluation is already running"))
+
+      (jecs/janet--mirror-input code)
+
+      (setq jecs/janet--protocol-carry "")
+
+      (setq jecs/janet--evaluation
+            (list
+             :source source
+             :position position
+             :output output
+             :start-marker start-marker
+             :result-marker result-marker
+             :phase :waiting-start))
+
+      (add-hook
+       'comint-redirect-hook
+       #'jecs/janet--schedule-evaluation-finished
+       nil t)
+
+      (condition-case error-data
+          (comint-redirect-send-command-to-process
+           command output repl t t)
+
+        (error
+         (jecs/janet--discard-evaluation repl)
+
+         (signal
+          (car error-data)
+          (cdr error-data)))))))
+
+(defun jecs/janet-eval-last-sexp ()
+  (interactive)
+
+  (save-excursion
+    (skip-chars-backward " \t\n")
+
+    (let ((end (point)))
+      (backward-sexp)
+
+      (jecs/janet-eval-region
+       (point)
+       end))))
+
+(defun jecs/janet-eval-defun ()
+  (interactive)
+
+  (save-mark-and-excursion
+    (mark-defun)
+
+    (jecs/janet-eval-region
+     (region-beginning)
+     (region-end))))
+
+(defun jecs/janet-interrupt-eval ()
+  (interactive)
+
+  (let ((repl
+         (+eval-current-repl-buffer)))
+
+    (unless (and repl
+                 (comint-check-proc repl))
+      (user-error
+       "There is no running Janet REPL"))
+
+    (with-current-buffer repl
+      (unless jecs/janet--evaluation
+        (user-error
+         "No Janet evaluation is running"))
+
+      (let ((process
+             (get-buffer-process repl)))
+
+        (jecs/janet--discard-evaluation repl)
+        (interrupt-process process)
+        (accept-process-output process 0.05)
+
+        (when (process-live-p process)
+          (delete-process process))))
+
+    (message
+     "Janet evaluation aborted; the REPL will restart on the next evaluation")))
+
+(set-repl-handler! '(janet-mode janet-ts-mode)
+  #'jecs/janet-repl
+  :persist t
+  :send-region #'jecs/janet-eval-region
+  :send-buffer
+  (lambda ()
+    (jecs/janet-eval-region
+     (point-min)
+     (point-max))))
+
+(map! :after janet-mode
+      :map janet-mode-map
+      "C-x C-e" #'jecs/janet-eval-last-sexp
+      "C-M-x"   #'jecs/janet-eval-defun
+      "C-c C-r" #'jecs/janet-eval-region
+      "C-c C-k" #'jecs/janet-interrupt-eval)
+
+(map! :after janet-ts-mode
+      :map janet-ts-mode-map
+      "C-x C-e" #'jecs/janet-eval-last-sexp
+      "C-M-x"   #'jecs/janet-eval-defun
+      "C-c C-r" #'jecs/janet-eval-region
+      "C-c C-k" #'jecs/janet-interrupt-eval)
 #+end_src
 
 * Project Tasks

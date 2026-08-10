@@ -1,5 +1,11 @@
 (package! benchmark-init)
 
+(unpin! gptel)
+
+(package! shell-maker)
+(package! acp)
+(package! agent-shell)
+
 (package! org-roam-ui)
 
 (package! verb)
